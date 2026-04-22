@@ -52,6 +52,7 @@ export default [
 
             // react security
             "react/no-unescaped-entities": ["warn", { forbid: [">", '"'] }],
+            "react-hooks/exhaustive-deps": "off",
 
             // clean unused stuff
             "no-unused-vars": "off",
