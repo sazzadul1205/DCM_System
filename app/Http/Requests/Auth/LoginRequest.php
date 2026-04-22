@@ -2,10 +2,14 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
+use App\Models\UserPasswordHistory;
+use Carbon\Carbon;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -28,7 +32,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            'login' => ['required', 'string'],
             'password' => ['required', 'string'],
         ];
     }
@@ -42,11 +46,54 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
-            RateLimiter::hit($this->throttleKey());
+        $loginInput = $this->input('login');
+        $password = $this->input('password');
+
+        // Detect login type
+        $field = filter_var($loginInput, FILTER_VALIDATE_EMAIL)
+            ? 'email'
+            : 'phone_primary';
+
+        // Normalize phone
+        if ($field === 'phone_primary') {
+            $loginInput = preg_replace('/[^0-9]/', '', $loginInput);
+        }
+
+        // ================================
+        // 1. Find user first (needed)
+        // ================================
+        $user = User::where($field, $loginInput)->first();
+
+        // ================================
+        // 2. OLD PASSWORD CHECK (IMPORTANT)
+        // ================================
+        if ($user) {
+            $oldPassword = UserPasswordHistory::where('user_id', $user->id)
+                ->orderByDesc('changed_at')
+                ->first();
+
+            if ($oldPassword && Hash::check($password, $oldPassword->password_hash)) {
+
+                $changedAt = Carbon::parse($oldPassword->changed_at);
+                $diff = $changedAt->diffForHumans();
+
+                throw ValidationException::withMessages([
+                    'login' => "This password was changed {$diff}. If this wasn’t you, please contact support.",
+                ]);
+            }
+        }
+
+        // ================================
+        // 3. NORMAL LOGIN ATTEMPT
+        // ================================
+        if (! Auth::attempt(
+            [$field => $loginInput, 'password' => $password],
+            $this->boolean('remember')
+        )) {
+            RateLimiter::hit($this->throttleKey(), 120);
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'login' => trans('auth.failed'),
             ]);
         }
 
@@ -69,7 +116,7 @@ class LoginRequest extends FormRequest
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
+            'login' => trans('auth.throttle', [
                 'seconds' => $seconds,
                 'minutes' => ceil($seconds / 60),
             ]),
@@ -81,6 +128,6 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+        return Str::transliterate(Str::lower($this->string('login')) . '|' . $this->ip());
     }
 }

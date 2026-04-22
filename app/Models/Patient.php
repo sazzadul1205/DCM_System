@@ -2,20 +2,15 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-
 use App\Services\UidGenerator;
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class Patient extends Model
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -23,40 +18,41 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'uid',
+        'patient_uid',
         'name',
-        'email',
         'phone_primary',
         'phone_secondary',
+        'email',
+        'gender',
+        'date_of_birth',
         'blood_group',
-        'email_verified_at',
-        'password',
-        'role_id',
+        'emergency_contact_name',
+        'emergency_contact_phone',
+        'emergency_contact_relation',
+        'referred_by_user_id',
+        'referral_source',
+        'referral_notes',
+        'address_division',
+        'address_district',
+        'address_police_station',
+        'address_postal_code',
+        'address_details',
         'status',
+        'registration_date',
         'created_by',
         'updated_by',
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
-
-    /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'date_of_birth' => 'date',
+            'registration_date' => 'date',
             'deleted_at' => 'datetime',
         ];
     }
@@ -64,18 +60,18 @@ class User extends Authenticatable
     // Generate a unique ID with retry mechanism
     protected static function booted()
     {
-        static::creating(function ($user) {
-            if (empty($user->uid)) {
-                $user->uid = UidGenerator::generate(
-                    prefix: 'UID',
-                    table: 'users',
-                    column: 'uid',
+        static::creating(function ($patient) {
+            if (empty($patient->patient_uid)) {
+                $patient->patient_uid = UidGenerator::generate(
+                    prefix: 'PID',
+                    table: 'patients',
+                    column: 'patient_uid',
                     length: 16
                 );
             }
         });
-    }
-    
+    } 
+
     /*
     |--------------------------------------------------------------------------
     | Relationships
@@ -83,15 +79,15 @@ class User extends Authenticatable
     */
 
     /**
-     * Get the role that belongs to the user.
+     * Get the user who referred this patient.
      */
-    public function role(): BelongsTo
+    public function referredBy(): BelongsTo
     {
-        return $this->belongsTo(Role::class);
+        return $this->belongsTo(User::class, 'referred_by_user_id');
     }
 
     /**
-     * Get the creator of this user.
+     * Get the creator of this patient.
      */
     public function createdBy(): BelongsTo
     {
@@ -99,7 +95,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the updater of this user.
+     * Get the updater of this patient.
      */
     public function updatedBy(): BelongsTo
     {
