@@ -1,4 +1,5 @@
 <?php
+// migrations/2026_04_22_134059_create_roles_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -16,12 +17,14 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->softDeletes();
-            $table->foreignId('created_by')->nullable();
-            $table->foreignId('updated_by')->nullable();
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
             $table->timestamps();
 
             $table->index('slug');
             $table->index('status');
+            $table->index('created_by');
+            $table->index('updated_by');
         });
     }
 

@@ -8,9 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            // Add foreign key constraints
-            $table->foreign('role_id')->references('id')->on('roles')->nullOnDelete();
+        Schema::table('roles', function (Blueprint $table) {
             $table->foreign('created_by')->references('id')->on('users')->nullOnDelete();
             $table->foreign('updated_by')->references('id')->on('users')->nullOnDelete();
         });
@@ -18,8 +16,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropForeign(['role_id']);
+        Schema::table('roles', function (Blueprint $table) {
             $table->dropForeign(['created_by']);
             $table->dropForeign(['updated_by']);
         });

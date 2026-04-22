@@ -1,4 +1,5 @@
 <?php
+// migration/0001_01_01_000000_create_users_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -6,6 +7,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
@@ -15,27 +17,17 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('phone_primary');
             $table->string('phone_secondary')->nullable();
-            $table->enum('blood_group', [
-                'A+',
-                'A-',
-                'B+',
-                'B-',
-                'AB+',
-                'AB-',
-                'O+',
-                'O-'
-            ])->nullable();
+            $table->enum('blood_group', ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->foreignId('role_id')->nullable();
+            $table->foreignId('role_id')->nullable()->constrained('roles')->nullOnDelete();
             $table->rememberToken();
             $table->enum('status', ['active', 'inactive', 'suspended'])->default('active');
             $table->softDeletes();
-            $table->foreignId('created_by')->nullable();
-            $table->foreignId('updated_by')->nullable();
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
-            // Indexes
             $table->index('uid');
             $table->index('phone_primary');
             $table->index('role_id');

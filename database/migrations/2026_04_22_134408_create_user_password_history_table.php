@@ -1,4 +1,5 @@
 <?php
+// migrations/2026_04_22_134408_create_user_password_history_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -14,13 +15,14 @@ return new class extends Migration
             $table->string('password_hash');
             $table->timestamp('changed_at')->useCurrent();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamps(); // Added for consistency
+            $table->timestamps();
 
             $table->index('user_id');
             $table->index('changed_at');
             $table->index(['user_id', 'changed_at']);
         });
     }
+
 
     public function down(): void
     {
