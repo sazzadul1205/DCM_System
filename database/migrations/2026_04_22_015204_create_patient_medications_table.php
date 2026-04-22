@@ -1,5 +1,4 @@
 <?php
-// database/migrations/2026_04_22_015204_create_patient_medications_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -12,21 +11,19 @@ return new class extends Migration
         Schema::create('patient_medications', function (Blueprint $table) {
             $table->id();
             $table->foreignId('patient_id')->constrained('patients')->cascadeOnDelete();
-            $table->foreignId('medication_id')->constrained('medications');
+            $table->string('medication_name');
             $table->string('dosage')->nullable();
-            $table->foreignId('frequency_id')->nullable()->constrained('medication_frequencies');
+            $table->string('frequency')->nullable();
             $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();
             $table->boolean('is_active')->default(true);
-            $table->foreignId('prescribed_by')->nullable()->constrained('users');
+            $table->foreignId('prescribed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->text('notes')->nullable();
-            $table->foreignId('created_by')->nullable()->constrained('users');
-            $table->foreignId('updated_by')->nullable()->constrained('users');
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
             $table->index('patient_id');
-            $table->index('medication_id');
-            $table->index('frequency_id');
             $table->index('is_active');
             $table->index('start_date');
             $table->index('prescribed_by');

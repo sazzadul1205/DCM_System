@@ -1,5 +1,4 @@
 <?php
-// database/migrations/2026_04_22_014655_create_patients_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -35,7 +34,7 @@ return new class extends Migration
             $table->string('emergency_contact_relation')->nullable();
 
             // Referral
-            $table->foreignId('referred_by_user_id')->nullable()->constrained('users');
+            $table->foreignId('referred_by_user_id')->nullable();
             $table->enum('referral_source', [
                 'doctor',
                 'patient',
@@ -54,14 +53,15 @@ return new class extends Migration
             $table->text('address_details')->nullable();
 
             $table->enum('status', ['active', 'inactive', 'deceased', 'archived'])->default('active');
-            $table->date('registration_date')->useCurrent();
+            $table->date('registration_date');
             $table->softDeletes();
 
-            $table->foreignId('created_by')->nullable()->constrained('users');
-            $table->foreignId('updated_by')->nullable()->constrained('users');
+            $table->foreignId('created_by')->nullable();
+            $table->foreignId('updated_by')->nullable();
             $table->timestamps();
 
             // Indexes
+            $table->index('patient_uid');
             $table->index('phone_primary');
             $table->index('email');
             $table->index('blood_group');
