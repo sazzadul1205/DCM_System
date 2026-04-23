@@ -18,10 +18,15 @@ Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+Route::middleware(['auth'])->group(function () {
+    // Profile routes
+    Route::prefix('profile')->name('profile.')->group(function () {
+        Route::get('complete', [ProfileController::class, 'completeProfile'])->name('complete');
+        Route::post('complete', [ProfileController::class, 'storeCompletedProfile'])->name('complete.store');
+        Route::get('show', [ProfileController::class, 'show'])->name('show');
+        Route::get('edit', [ProfileController::class, 'edit'])->name('edit');
+        Route::put('update', [ProfileController::class, 'update'])->name('update');
+    });
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

@@ -2,62 +2,228 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Http\RedirectResponse;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ProfileController extends Controller
 {
-    /**
-     * Display the user's profile form.
-     */
-    public function edit(Request $request): Response
-    {
-        return Inertia::render('Profile/Edit', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
-            'status' => session('status'),
-        ]);
+  /**
+   * Show the profile completion page
+   * Redirect if profile is already completed
+   */
+  public function completeProfile(): Response|\Illuminate\Http\RedirectResponse
+  {
+    /** @var User $user */
+    $user = Auth::user();
+
+    // If profile is already completed, redirect to profile show page
+    if ($user->isProfileCompleted()) {
+      return redirect()->route('profile.show')
+        ->with('info', 'Your profile is already completed!');
     }
 
-    /**
-     * Update the user's profile information.
-     */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
-    {
-        $request->user()->fill($request->validated());
+    return Inertia::render('Backend/Users/CompleteProfile', [
+      'user' => $user
+    ]);
+  }
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
-        }
+  /**
+   * Store completed profile data
+   */
+  public function storeCompletedProfile(Request $request)
+  {
+    /** @var User $user */
+    $user = User::query()->findOrFail(Auth::id());
 
-        $request->user()->save();
-
-        return Redirect::route('profile.edit');
+    // Prevent re-completion if already completed
+    if ($user->isProfileCompleted()) {
+      return redirect()->route('profile.show')
+        ->with('error', 'Profile already completed!');
     }
 
-    /**
-     * Delete the user's account.
-     */
-    public function destroy(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'password' => ['required', 'current_password'],
-        ]);
+    // Normalize input BEFORE validation
+    $request->merge([
+      'email' => strtolower(trim($request->email)),
+      'phone_primary' => preg_replace('/[^0-9]/', '', $request->phone_primary),
+      'phone_secondary' => $request->phone_secondary
+        ? preg_replace('/[^0-9]/', '', $request->phone_secondary)
+        : null,
+    ]);
 
-        $user = $request->user();
+    // Validation
+    $validated = $request->validate([
+      'name' => ['required', 'string', 'max:255'],
+      'email' => [
+        'required',
+        'string',
+        'email',
+        'max:255',
+        'unique:users,email,' . $user->id,
+      ],
+      'phone_primary' => [
+        'required',
+        'string',
+        'max:20',
+        'unique:users,phone_primary,' . $user->id,
+      ],
+      'phone_secondary' => ['nullable', 'string', 'max:20'],
+      'blood_group' => ['nullable', 'in:A+,A-,B+,B-,AB+,AB-,O+,O-'],
+      'date_of_birth' => ['nullable', 'date'],
+      'gender' => ['nullable', 'in:male,female,other'],
+      'address_division' => ['nullable', 'string', 'max:100'],
+      'address_district' => ['nullable', 'string', 'max:100'],
+      'address_police_station' => ['nullable', 'string', 'max:100'],
+      'address_postal_code' => ['nullable', 'string', 'max:20'],
+      'address_details' => ['nullable', 'string'],
+      'emergency_contact_name' => ['nullable', 'string', 'max:255'],
+      'emergency_contact_phone' => ['nullable', 'string', 'max:20'],
+      'emergency_contact_relation' => ['nullable', 'string', 'max:100'],
+    ]);
 
-        Auth::logout();
+    try {
+      DB::beginTransaction();
 
-        $user->delete();
+      // Update ALL relevant fields including new profile fields
+      $user->update([
+        'name' => $validated['name'],
+        'email' => $validated['email'],
+        'phone_primary' => $validated['phone_primary'],
+        'phone_secondary' => $validated['phone_secondary'] ?? null,
+        'blood_group' => $validated['blood_group'] ?? null,
+        'date_of_birth' => $validated['date_of_birth'] ?? null,
+        'gender' => $validated['gender'] ?? null,
+        'address_division' => $validated['address_division'] ?? null,
+        'address_district' => $validated['address_district'] ?? null,
+        'address_police_station' => $validated['address_police_station'] ?? null,
+        'address_postal_code' => $validated['address_postal_code'] ?? null,
+        'address_details' => $validated['address_details'] ?? null,
+        'emergency_contact_name' => $validated['emergency_contact_name'] ?? null,
+        'emergency_contact_phone' => $validated['emergency_contact_phone'] ?? null,
+        'emergency_contact_relation' => $validated['emergency_contact_relation'] ?? null,
+      ]);
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+      // Mark profile as completed
+      $user->markProfileAsCompleted();
 
-        return Redirect::to('/');
+      DB::commit();
+
+      return redirect()
+        ->route('profile.show')
+        ->with('success', 'Profile completed successfully!');
+    } catch (\Throwable $e) {
+      DB::rollBack();
+
+      Log::error('Profile completion failed', [
+        'user_id' => $user->id,
+        'error' => $e->getMessage(),
+      ]);
+
+      throw ValidationException::withMessages([
+        'general' => 'Failed to complete profile. Please try again or contact support.',
+      ]);
     }
+  }
+
+  /**
+   * Show the user profile
+   */
+  public function show(): Response|\Illuminate\Http\RedirectResponse
+  {
+    /** @var User $user */
+    $user = User::query()->with('role')->findOrFail(Auth::id());
+
+    return Inertia::render('Backend/Users/Show', [
+      'user' => $user
+    ]);
+  }
+
+  /**
+   * Show the profile edit page
+   */
+  public function edit(): Response
+  {
+    /** @var User $user */
+    $user = Auth::user();
+
+    return Inertia::render('Backend/Users/Edit', [
+      'user' => $user
+    ]);
+  }
+
+  /**
+   * Update user profile
+   */
+  public function update(Request $request)
+  {
+    /** @var User $user */
+    $user = Auth::user();
+
+    // Normalize input
+    $request->merge([
+      'email' => strtolower(trim($request->email)),
+      'phone_primary' => preg_replace('/[^0-9]/', '', $request->phone_primary),
+      'phone_secondary' => $request->phone_secondary
+        ? preg_replace('/[^0-9]/', '', $request->phone_secondary)
+        : null,
+    ]);
+
+    $validated = $request->validate([
+      'name' => ['required', 'string', 'max:255'],
+      'email' => [
+        'required',
+        'string',
+        'email',
+        'max:255',
+        'unique:users,email,' . $user->id,
+      ],
+      'phone_primary' => [
+        'required',
+        'string',
+        'max:20',
+        'unique:users,phone_primary,' . $user->id,
+      ],
+      'phone_secondary' => ['nullable', 'string', 'max:20'],
+      'blood_group' => ['nullable', 'in:A+,A-,B+,B-,AB+,AB-,O+,O-'],
+      'date_of_birth' => ['nullable', 'date'],
+      'gender' => ['nullable', 'in:male,female,other'],
+      'address_division' => ['nullable', 'string', 'max:100'],
+      'address_district' => ['nullable', 'string', 'max:100'],
+      'address_police_station' => ['nullable', 'string', 'max:100'],
+      'address_postal_code' => ['nullable', 'string', 'max:20'],
+      'address_details' => ['nullable', 'string'],
+      'emergency_contact_name' => ['nullable', 'string', 'max:255'],
+      'emergency_contact_phone' => ['nullable', 'string', 'max:20'],
+      'emergency_contact_relation' => ['nullable', 'string', 'max:100'],
+    ]);
+
+    try {
+      DB::beginTransaction();
+
+      $user->update($validated);
+
+      DB::commit();
+
+      return redirect()
+        ->route('profile.show')
+        ->with('success', 'Profile updated successfully!');
+    } catch (\Throwable $e) {
+      DB::rollBack();
+
+      Log::error('Profile update failed', [
+        'user_id' => $user->id,
+        'error' => $e->getMessage(),
+      ]);
+
+      throw ValidationException::withMessages([
+        'general' => 'Failed to update profile. Please try again.',
+      ]);
+    }
+  }
 }
+

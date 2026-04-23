@@ -38,6 +38,17 @@ class LoginRequest extends FormRequest
     }
 
     /**
+     * Get custom messages for validation errors.
+     */
+    public function messages(): array
+    {
+        return [
+            'login.required' => 'Email or phone number is required.',
+            'password.required' => 'Password is required.',
+        ];
+    }
+
+    /**
      * Attempt to authenticate the request's credentials.
      *
      * @throws ValidationException
@@ -54,46 +65,64 @@ class LoginRequest extends FormRequest
             ? 'email'
             : 'phone_primary';
 
-        // Normalize phone
+        // Normalize phone number (remove all non-numeric characters)
         if ($field === 'phone_primary') {
             $loginInput = preg_replace('/[^0-9]/', '', $loginInput);
-        }
 
-        // ================================
-        // 1. Find user first (needed)
-        // ================================
-        $user = User::where($field, $loginInput)->first();
-
-        // ================================
-        // 2. OLD PASSWORD CHECK (IMPORTANT)
-        // ================================
-        if ($user) {
-            $oldPassword = UserPasswordHistory::where('user_id', $user->id)
-                ->orderByDesc('changed_at')
-                ->first();
-
-            if ($oldPassword && Hash::check($password, $oldPassword->password_hash)) {
-
-                $changedAt = Carbon::parse($oldPassword->changed_at);
-                $diff = $changedAt->diffForHumans();
-
-                throw ValidationException::withMessages([
-                    'login' => "This password was changed {$diff}. If this wasn’t you, please contact support.",
-                ]);
+            // Remove leading 0 or 880 if present
+            if (str_starts_with($loginInput, '0')) {
+                $loginInput = substr($loginInput, 1);
+            }
+            if (str_starts_with($loginInput, '880')) {
+                $loginInput = substr($loginInput, 3);
             }
         }
 
-        // ================================
-        // 3. NORMAL LOGIN ATTEMPT
-        // ================================
-        if (! Auth::attempt(
+        // Find user
+        $user = User::where($field, $loginInput)->first();
+
+        // Check if user exists
+        if (!$user) {
+            RateLimiter::hit($this->throttleKey(), 120);
+
+            throw ValidationException::withMessages([
+                'login' => 'No account found with this email or phone number.',
+            ]);
+        }
+
+        // Check old password (password history)
+        $oldPassword = UserPasswordHistory::where('user_id', $user->id)
+            ->orderByDesc('changed_at')
+            ->first();
+
+        if ($oldPassword && Hash::check($password, $oldPassword->password_hash)) {
+            $changedAt = Carbon::parse($oldPassword->changed_at);
+            $diff = $changedAt->diffForHumans();
+
+            throw ValidationException::withMessages([
+                'login' => "This password was changed {$diff}. Please use your current password. If this wasn't you, contact support.",
+            ]);
+        }
+
+        // Attempt login
+        if (!Auth::attempt(
             [$field => $loginInput, 'password' => $password],
             $this->boolean('remember')
         )) {
             RateLimiter::hit($this->throttleKey(), 120);
 
             throw ValidationException::withMessages([
-                'login' => trans('auth.failed'),
+                'login' => 'The provided credentials do not match our records.',
+            ]);
+        }
+
+        // Check if user is active
+        $user = Auth::user();
+        if ($user->status !== 'active') {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'login' => 'Your account is ' . $user->status . '. Please contact support.',
             ]);
         }
 
@@ -107,7 +136,7 @@ class LoginRequest extends FormRequest
      */
     public function ensureIsNotRateLimited(): void
     {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+        if (!RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
             return;
         }
 
