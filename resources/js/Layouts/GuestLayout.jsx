@@ -8,32 +8,24 @@ import { useState, useEffect } from 'react';
 import { FaArrowLeft, FaMoon, FaSun } from 'react-icons/fa';
 
 export default function GuestLayout({ children }) {
-    const [isDark, setIsDark] = useState(false);
+    const [isDark, setIsDark] = useState(() => {
+        if (typeof window === 'undefined') {
+            return false;
+        }
 
-    useEffect(() => {
-        // Check for saved theme preference or system preference
-        const savedTheme = localStorage.getItem('theme');
+        const savedTheme = window.localStorage.getItem('theme');
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-            setIsDark(true);
-            document.documentElement.classList.add('dark');
-        } else {
-            setIsDark(false);
-            document.documentElement.classList.remove('dark');
-        }
-    }, []);
+        return savedTheme === 'dark' || (!savedTheme && prefersDark);
+    });
+
+    useEffect(() => {
+        document.documentElement.classList.toggle('dark', isDark);
+        window.localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    }, [isDark]);
 
     const toggleDarkMode = () => {
-        if (isDark) {
-            document.documentElement.classList.remove('dark');
-            localStorage.setItem('theme', 'light');
-            setIsDark(false);
-        } else {
-            document.documentElement.classList.add('dark');
-            localStorage.setItem('theme', 'dark');
-            setIsDark(true);
-        }
+        setIsDark((current) => !current);
     };
 
     const handleBack = () => {

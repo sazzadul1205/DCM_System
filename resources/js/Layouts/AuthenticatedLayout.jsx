@@ -1,177 +1,203 @@
-import { Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+// React
+import { Link, usePage, router } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
 
-import ApplicationLogo from '@/Components/ApplicationLogo';
-import Dropdown from '@/Components/Dropdown';
-import NavLink from '@/Components/NavLink';
-import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
+// Icons
+import {
+  FaMoon,
+  FaSun,
+  FaUser,
+  FaSignOutAlt,
+  FaUserCog,
+  FaChevronDown,
+  FaTachometerAlt,
+  FaBars,
+  FaTimes
+} from 'react-icons/fa';
 
-export default function AuthenticatedLayout({ header, children }) {
-    const user = usePage().props.auth.user;
+export default function AuthenticatedLayout({ children }) {
+  const user = usePage().props.auth.user;
+  console.log(user);
 
-    const [showingNavigationDropdown, setShowingNavigationDropdown] =
-        useState(false);
+  // ==== StateS ====
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window === 'undefined') { return false; }
 
-    return (
-        <div className="min-h-screen bg-gray-100">
-            <nav className="border-b border-gray-100 bg-white">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="flex h-16 justify-between">
-                        <div className="flex">
-                            <div className="flex shrink-0 items-center">
-                                <Link href="/">
-                                    <ApplicationLogo className="block h-9 w-auto fill-current text-gray-800" />
-                                </Link>
-                            </div>
+    // Check if the user has a saved theme preference
+    const savedTheme = window.localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-                            <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                <NavLink
-                                    href={route('dashboard')}
-                                    active={route().current('dashboard')}
-                                >
-                                    Dashboard
-                                </NavLink>
-                            </div>
-                        </div>
+    // If the user has a saved theme preference, use it
+    return savedTheme === 'dark' || (!savedTheme && prefersDark);
+  });
 
-                        <div className="hidden sm:ms-6 sm:flex sm:items-center">
-                            <div className="relative ms-3">
-                                <Dropdown>
-                                    <Dropdown.Trigger>
-                                        <span className="inline-flex rounded-md">
-                                            <button
-                                                type="button"
-                                                className="inline-flex items-center rounded-md border border-transparent bg-white px-3 py-2 text-sm font-medium leading-4 text-gray-500 transition duration-150 ease-in-out hover:text-gray-700 focus:outline-none"
-                                            >
-                                                {user.name}
+  // ==== Functions ====
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+    window.localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
 
-                                                <svg
-                                                    className="-me-0.5 ms-2 h-4 w-4"
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    viewBox="0 0 20 20"
-                                                    fill="currentColor"
-                                                >
-                                                    <path
-                                                        fillRule="evenodd"
-                                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                                        clipRule="evenodd"
-                                                    />
-                                                </svg>
-                                            </button>
-                                        </span>
-                                    </Dropdown.Trigger>
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    setIsDark((current) => !current);
+  };
 
-                                    <Dropdown.Content>
-                                        <Dropdown.Link
-                                            href={route('profile.edit')}
-                                        >
-                                            Profile
-                                        </Dropdown.Link>
-                                        <Dropdown.Link
-                                            href={route('logout')}
-                                            method="post"
-                                            as="button"
-                                        >
-                                            Log Out
-                                        </Dropdown.Link>
-                                    </Dropdown.Content>
-                                </Dropdown>
-                            </div>
-                        </div>
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isUserMenuOpen && !event.target.closest('.user-menu')) {
+        setIsUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [isUserMenuOpen]);
 
-                        <div className="-me-2 flex items-center sm:hidden">
-                            <button
-                                onClick={() =>
-                                    setShowingNavigationDropdown(
-                                        (previousState) => !previousState,
-                                    )
-                                }
-                                className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none"
-                            >
-                                <svg
-                                    className="h-6 w-6"
-                                    stroke="currentColor"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        className={
-                                            !showingNavigationDropdown
-                                                ? 'inline-flex'
-                                                : 'hidden'
-                                        }
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M4 6h16M4 12h16M4 18h16"
-                                    />
-                                    <path
-                                        className={
-                                            showingNavigationDropdown
-                                                ? 'inline-flex'
-                                                : 'hidden'
-                                        }
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+  // Logout handler
+  const handleLogout = (e) => {
+    e.preventDefault();
+    router.post(route('logout'));
+  };
 
-                <div
-                    className={
-                        (showingNavigationDropdown ? 'block' : 'hidden') +
-                        ' sm:hidden'
-                    }
+  // Navigation items
+  const navigation = [
+    {
+      name: 'Dashboard',
+      icon: FaTachometerAlt,
+      href: route('dashboard'),
+      permission_key: "dashboard.view",
+      current: route().current('dashboard'),
+    },
+    {
+      name: 'Complete Profile',
+      icon: FaUserCog,
+      href: route('profile.complete'),
+      permission_key: "profile.complete",
+      current: route().current('profile.complete'),
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
+      {/* Top Navigation Bar */}
+      <nav className="fixed top-0 right-0 left-0 z-30 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm transition-colors duration-200">
+        <div className="px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 justify-between">
+            {/* Left Section - Menu Toggle & Logo */}
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200 transition-colors duration-200"
+              >
+                {isSidebarOpen ? <FaTimes className="h-5 w-5" /> : <FaBars className="h-5 w-5" />}
+              </button>
+
+              <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                DCM-System
+              </Link>
+            </div>
+
+            {/* Right Section - Dark Mode Toggle & User Menu */}
+            <div className="flex items-center space-x-4">
+              {/* Dark Mode Toggle */}
+              <button
+                onClick={toggleDarkMode}
+                className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200 transition-colors duration-200"
+                aria-label="Toggle dark mode"
+              >
+                {isDark ? <FaSun className="h-5 w-5" /> : <FaMoon className="h-5 w-5" />}
+              </button>
+
+              {/* User Dropdown Menu */}
+              <div className="relative user-menu">
+                <button
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="flex items-center space-x-3 rounded-lg p-2 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors duration-200"
                 >
-                    <div className="space-y-1 pb-3 pt-2">
-                        <ResponsiveNavLink
-                            href={route('dashboard')}
-                            active={route().current('dashboard')}
-                        >
-                            Dashboard
-                        </ResponsiveNavLink>
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                    <FaUser className="h-4 w-4 text-white" />
+                  </div>
+                  <div className="hidden md:block text-left">
+                    <p className="text-sm font-medium">{user.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
+                  </div>
+                  <FaChevronDown className={`h-3 w-3 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Dropdown Menu */}
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 rounded-lg bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 z-50 transition-all duration-200">
+                    <div className="py-1">
+                      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 md:hidden">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{user.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
+                      </div>
+                      <Link
+                        href={route('profile.edit')}
+                        className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors duration-150"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <FaUserCog className="h-4 w-4" />
+                        <span>Profile Settings</span>
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="flex w-full items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors duration-150"
+                      >
+                        <FaSignOutAlt className="h-4 w-4" />
+                        <span>Log Out</span>
+                      </button>
                     </div>
-
-                    <div className="border-t border-gray-200 pb-1 pt-4">
-                        <div className="px-4">
-                            <div className="text-base font-medium text-gray-800">
-                                {user.name}
-                            </div>
-                            <div className="text-sm font-medium text-gray-500">
-                                {user.email}
-                            </div>
-                        </div>
-
-                        <div className="mt-3 space-y-1">
-                            <ResponsiveNavLink href={route('profile.edit')}>
-                                Profile
-                            </ResponsiveNavLink>
-                            <ResponsiveNavLink
-                                method="post"
-                                href={route('logout')}
-                                as="button"
-                            >
-                                Log Out
-                            </ResponsiveNavLink>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-
-            {header && (
-                <header className="bg-white shadow">
-                    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-                        {header}
-                    </div>
-                </header>
-            )}
-
-            <main>{children}</main>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-    );
+      </nav>
+
+      {/* Sidebar */}
+      <aside className={`fixed left-0 top-16 z-20 h-full bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-64' : 'w-0 overflow-hidden'}`}>
+        <div className="flex h-full flex-col">
+          {/* Navigation Links */}
+          <nav className="flex-1 space-y-1 p-4">
+            {navigation.map((item) => {
+              const isActive = item.current || (item.href !== '#' && route().current()?.startsWith(item.name.toLowerCase()));
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 ${isActive
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                    : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+                    }`}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.name}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Footer Section */}
+          <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+            <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+              <p>DCM-System v1.0</p>
+              <p className="mt-1">© 2024 All rights reserved</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className={`transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}>
+        {/* Page Content */}
+        <div className="pt-20 px-5">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
 }
