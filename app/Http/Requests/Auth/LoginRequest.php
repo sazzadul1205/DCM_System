@@ -78,8 +78,8 @@ class LoginRequest extends FormRequest
             }
         }
 
-        // Find user
-        $user = User::where($field, $loginInput)->first();
+        // Find user, including soft-deleted accounts so we can block them explicitly
+        $user = User::withTrashed()->where($field, $loginInput)->first();
 
         // Check if user exists
         if (!$user) {
@@ -87,6 +87,14 @@ class LoginRequest extends FormRequest
 
             throw ValidationException::withMessages([
                 'login' => 'No account found with this email or phone number.',
+            ]);
+        }
+
+        if ($user->trashed()) {
+            RateLimiter::hit($this->throttleKey(), 120);
+
+            throw ValidationException::withMessages([
+                'login' => 'This account has been deleted and can no longer be used.',
             ]);
         }
 

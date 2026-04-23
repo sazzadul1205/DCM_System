@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -225,5 +226,54 @@ class ProfileController extends Controller
       ]);
     }
   }
-}
 
+  /**
+   * Delete user account (soft delete)
+   */
+  public function destroy(Request $request)
+  {
+    /** @var User $user */
+    $user = Auth::user();
+
+    $request->validate([
+      'password' => ['required', 'string'],
+    ]);
+
+    // Verify password
+    if (!Hash::check($request->password, $user->password)) {
+      throw ValidationException::withMessages([
+        'password' => 'The provided password is incorrect.',
+      ]);
+    }
+
+    try {
+      DB::beginTransaction();
+
+      // Soft delete the user
+      $user->delete();
+
+      // Log out the user
+      Auth::logout();
+
+      // Invalidate session
+      $request->session()->invalidate();
+      $request->session()->regenerateToken();
+
+      DB::commit();
+
+      return redirect('/')->with('success', 'Your account has been deleted successfully.');
+    } catch (\Throwable $e) {
+      DB::rollBack();
+
+      Log::error('Account deletion failed', [
+        'user_id' => $user->id,
+        'user_email' => $user->email,
+        'error' => $e->getMessage()
+      ]);
+
+      throw ValidationException::withMessages([
+        'general' => 'Failed to delete account. Please try again later.',
+      ]);
+    }
+  }
+}

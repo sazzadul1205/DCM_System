@@ -26,6 +26,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('show', [ProfileController::class, 'show'])->name('show');
         Route::get('edit', [ProfileController::class, 'edit'])->name('edit');
         Route::put('update', [ProfileController::class, 'update'])->name('update');
+        Route::delete('destroy', [ProfileController::class, 'destroy'])->name('destroy'); 
     });
 });
 

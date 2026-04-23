@@ -21,9 +21,7 @@ export default function AuthenticatedLayout({ children }) {
   const user = usePage().props.auth.user;
   const isProfileCompleted = user?.profile_completed || false;
   const userPermissions = user?.role?.permissions || [];
-
-  console.log('Profile completed:', isProfileCompleted);
-  console.log('User permissions:', userPermissions);
+  const currentRoute = route().current();
 
   // ==== States ====
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -62,8 +60,8 @@ export default function AuthenticatedLayout({ children }) {
 
   // Check if user has permission for a menu item
   const hasPermission = (permissionKey) => {
-    if (!permissionKey) return true; // No permission required
-    if (!userPermissions.length) return false; // No permissions assigned
+    if (!permissionKey) return true;
+    if (!userPermissions.length) return false;
     return userPermissions.includes(permissionKey);
   };
 
@@ -74,7 +72,7 @@ export default function AuthenticatedLayout({ children }) {
       icon: FaTachometerAlt,
       href: route('dashboard'),
       permission_key: "dashboard.view",
-      current: route().current('dashboard'),
+      current: currentRoute === 'dashboard',
     }
   ];
 
@@ -85,25 +83,29 @@ export default function AuthenticatedLayout({ children }) {
       name: 'Complete Profile',
       icon: FaUserCog,
       href: route('profile.complete'),
-      permission_key: null, // No permission needed, it's required
-      current: route().current('profile.complete'),
+      permission_key: null,
+      current: currentRoute === 'profile.complete',
     });
   } else {
-    // User has completed profile - show View and Edit options
+    // Always show My Profile
     allNavigationItems.push({
       name: 'My Profile',
       icon: FaIdCard,
       href: route('profile.show'),
       permission_key: "profile.view",
-      current: route().current('profile.show'),
+      current: currentRoute === 'profile.show',
     });
-    allNavigationItems.push({
-      name: 'Edit Profile',
-      icon: FaUserCheck,
-      href: route('profile.edit'),
-      permission_key: "profile.edit",
-      current: route().current('profile.edit'),
-    });
+
+    // Edit Profile - Only show when on the Edit Profile page, and it won't be clickable
+    if (currentRoute === 'profile.edit') {
+      allNavigationItems.push({
+        name: 'Edit Profile',
+        icon: FaUserCheck,
+        href: '#', // No destination - just a visual indicator
+        permission_key: "profile.edit",
+        current: true, // Always active/highlighted when visible
+      });
+    }
   }
 
   // Filter navigation items based on user permissions
@@ -239,7 +241,24 @@ export default function AuthenticatedLayout({ children }) {
           {/* Navigation Links */}
           <nav className="flex-1 space-y-1 p-4">
             {navigation.map((item) => {
-              const isActive = item.current || (item.href !== '#' && route().current()?.startsWith(item.name.toLowerCase()));
+              const isActive = item.current;
+              // For Edit Profile, make it non-clickable by using div instead of Link
+              if (item.name === 'Edit Profile' && item.href === '#') {
+                return (
+                  <div
+                    key={item.name}
+                    className={`flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium cursor-default ${isActive
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white opacity-75'
+                        : 'text-gray-700 dark:text-gray-300'
+                      }`}
+                  >
+                    <item.icon className="h-5 w-5" />
+                    <span>{item.name}</span>
+                  </div>
+                );
+              }
+
+              // Regular clickable links
               return (
                 <Link
                   key={item.name}
