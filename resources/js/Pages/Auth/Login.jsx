@@ -2,7 +2,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 
 // Icons
-import { FaEnvelope, FaLock, FaSignInAlt } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaSignInAlt, } from 'react-icons/fa';
 
 // Components 
 import FormField from '@/Components/FormField';
@@ -10,9 +10,9 @@ import GuestLayout from '@/Layouts/GuestLayout';
 
 export default function Login({ status, canResetPassword }) {
 
-  // Login Form
+  // Login Form - Use 'login' instead of 'email'
   const { data, setData, post, processing, errors, reset } = useForm({
-    email: '',
+    login: '',  // Changed from 'email' to 'login'
     password: '',
     remember: false,
   });
@@ -50,19 +50,26 @@ export default function Login({ status, canResetPassword }) {
           </div>
         )}
 
+        {/* Error Messages */}
+        {errors.login && (
+          <div className="mb-4 rounded-lg bg-red-50 p-4 text-sm font-medium text-red-600 dark:bg-red-900/20 dark:text-red-400">
+            {errors.login}
+          </div>
+        )}
+
         {/* Login Form */}
         <form onSubmit={submit} className="space-y-5">
-          {/* Email Field */}
+          {/* Email/Phone Field */}
           <FormField
-            id="email"
-            name="email"
-            type="email"
-            label="Email Address"
-            value={data.email}
-            onChange={(e) => setData('email', e.target.value)}
-            error={errors.email}
+            id="login"
+            name="login"
+            type="text"
+            label="Email or Phone Number"
+            value={data.login}
+            onChange={(e) => setData('login', e.target.value)}
+            error={errors.login}
             icon={FaEnvelope}
-            placeholder="Enter your email"
+            placeholder="Enter your email or phone number"
             autoComplete="username"
             autoFocus
             required

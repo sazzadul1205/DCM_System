@@ -2,18 +2,68 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 
 // Icons
-import { FaUser, FaEnvelope, FaLock, FaUserPlus } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaLock, FaUserPlus, FaPhone } from 'react-icons/fa';
 
 // Components
 import FormField from '@/Components/FormField';
 import GuestLayout from '@/Layouts/GuestLayout';
 
 export default function Register() {
+  // Format phone number for Bangladesh (+880 XXXX-XXXXXX)
+  const formatPhoneNumber = (value) => {
+    // Remove all non-numeric characters
+    let cleaned = value.replace(/\D/g, '');
+
+    // Remove leading 0 if present
+    if (cleaned.startsWith('0')) {
+      cleaned = cleaned.substring(1);
+    }
+
+    // Remove +880 if present at start
+    if (cleaned.startsWith('880')) {
+      cleaned = cleaned.substring(3);
+    }
+
+    // Limit to 10 digits (operator code + number)
+    if (cleaned.length > 10) {
+      cleaned = cleaned.substring(0, 10);
+    }
+
+    // Format as +880 XXXX-XXXXXX
+    if (cleaned.length >= 4) {
+      const operatorCode = cleaned.substring(0, 4);
+      const restNumber = cleaned.substring(4);
+      if (restNumber.length > 0) {
+        return `+880 ${operatorCode}-${restNumber}`;
+      }
+      return `+880 ${operatorCode}`;
+    } else if (cleaned.length > 0) {
+      return `+880 ${cleaned}`;
+    }
+
+    return cleaned ? `+880 ${cleaned}` : '';
+  };
+
+  // Handle phone input change
+  const handlePhoneChange = (e) => {
+    let value = e.target.value;
+
+    // If user is deleting, handle properly
+    if (value === '') {
+      setData('phone_primary', '');
+      return;
+    }
+
+    // Format the phone number
+    const formatted = formatPhoneNumber(value);
+    setData('phone_primary', formatted);
+  };
 
   // Register Form
   const { data, setData, post, processing, errors, reset } = useForm({
     name: '',
     email: '',
+    phone_primary: '',
     password: '',
     password_confirmation: '',
   });
@@ -21,6 +71,10 @@ export default function Register() {
   // Register Form Submit
   const submit = (e) => {
     e.preventDefault();
+
+    // Clean phone number before submit (remove spaces and dash)
+    const cleanPhone = data.phone_primary.replace(/[\s-]/g, '');
+    setData('phone_primary', cleanPhone);
 
     post(route('register'), {
       onFinish: () => reset('password', 'password_confirmation'),
@@ -63,7 +117,7 @@ export default function Register() {
             required
           />
 
-          {/* Email Field */}
+          {/* Email Field - No lowercase validation */}
           <FormField
             id="email"
             name="email"
@@ -74,9 +128,29 @@ export default function Register() {
             error={errors.email}
             icon={FaEnvelope}
             placeholder="Enter your email"
-            autoComplete="username"
+            autoComplete="email"
             required
           />
+
+          {/* Phone Number Field with BD Format */}
+          <FormField
+            id="phone_primary"
+            name="phone_primary"
+            type="tel"
+            label="Phone Number"
+            value={data.phone_primary}
+            onChange={handlePhoneChange}
+            error={errors.phone_primary}
+            icon={FaPhone}
+            placeholder="+880 1XXX-XXXXXX"
+            autoComplete="tel"
+            required
+          />
+
+          {/* Phone Format Hint */}
+          <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <span>Format: +880 1XXX-XXXXXX (e.g., +880 1712-345678)</span>
+          </div>
 
           {/* Password Field */}
           <FormField
@@ -152,14 +226,14 @@ export default function Register() {
           <p className="text-xs text-gray-500 dark:text-gray-500">
             By registering, you agree to our{' '}
             <Link
-              // href={route('terms')}
+              href="#"
               className="text-blue-600 hover:underline dark:text-blue-400"
             >
               Terms of Service
             </Link>{' '}
             and{' '}
             <Link
-              // href={route('privacy')}
+              href="#"
               className="text-blue-600 hover:underline dark:text-blue-400"
             >
               Privacy Policy
