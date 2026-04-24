@@ -14,7 +14,8 @@ import {
   FaBars,
   FaTimes,
   FaUserCheck,
-  FaIdCard
+  FaIdCard,
+  FaUserShield
 } from 'react-icons/fa';
 
 export default function AuthenticatedLayout({ children }) {
@@ -88,13 +89,22 @@ export default function AuthenticatedLayout({ children }) {
     });
   } else {
     // Always show My Profile
-    allNavigationItems.push({
-      name: 'My Profile',
-      icon: FaIdCard,
-      href: route('profile.show'),
-      permission_key: "profile.view",
-      current: currentRoute === 'profile.show',
-    });
+    allNavigationItems.push(
+      {
+        name: 'My Profile',
+        icon: FaIdCard,
+        href: route('profile.show'),
+        permission_key: "profile.view",
+        current: currentRoute === 'profile.show',
+      },
+      {
+        name: 'Manage Roles',
+        icon: FaUserShield,
+        href: route('roles.index'),
+        permission_key: "roles.index",
+        current: currentRoute === 'roles.index',
+      }
+    );
 
     // Edit Profile - Only show when on the Edit Profile page, and it won't be clickable
     if (currentRoute === 'profile.edit') {
@@ -248,8 +258,8 @@ export default function AuthenticatedLayout({ children }) {
                   <div
                     key={item.name}
                     className={`flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium cursor-default ${isActive
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white opacity-75'
-                        : 'text-gray-700 dark:text-gray-300'
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white opacity-75'
+                      : 'text-gray-700 dark:text-gray-300'
                       }`}
                   >
                     <item.icon className="h-5 w-5" />
@@ -264,8 +274,8 @@ export default function AuthenticatedLayout({ children }) {
                   key={item.name}
                   href={item.href}
                   className={`flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 ${isActive
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                      : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                    : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
                     }`}
                 >
                   <item.icon className="h-5 w-5" />

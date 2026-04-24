@@ -4,7 +4,7 @@
 import { useState } from 'react';
 
 // Inertia
-import { Link, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 
 // Icons
 import {
@@ -37,7 +37,12 @@ export default function Show({ user }) {
 
   return (
     <AuthenticatedLayout>
+      <Head title='My Profile' />
+
+      {/* Body */}
       <div className="mx-auto py-6">
+
+        {/* Flash Card */}
         {flash.status && (
           <div className="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300">
             {flash.status}

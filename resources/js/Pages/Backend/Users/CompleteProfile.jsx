@@ -27,9 +27,10 @@ import EmergencyStep from './Steps/EmergencyStep';
 import BasicInfoStep from './Steps/BasicInfoStep';
 
 export default function CompleteProfile({ user }) {
+  // Step management
   const [currentStep, setCurrentStep] = useState(1);
-  const [completedSteps, setCompletedSteps] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [completedSteps, setCompletedSteps] = useState({});
 
   // Form data persistence across steps
   const { data, setData, post, processing, errors } = useForm({
