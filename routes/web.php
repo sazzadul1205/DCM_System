@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AllergyController;
+use App\Http\Controllers\MedicalConditionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use Illuminate\Foundation\Application;
@@ -37,13 +39,31 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/{role}', [RoleController::class, 'update'])->name('update');
         Route::delete('/{role}', [RoleController::class, 'destroy'])->name('destroy');
         Route::patch('/{role}/status', [RoleController::class, 'updateStatus'])->name('update-status');
-
-        // Bulk operations
         Route::delete('/bulk/delete', [RoleController::class, 'bulkDelete'])->name('bulk.delete');
         Route::put('/bulk/status', [RoleController::class, 'bulkUpdateStatus'])->name('bulk.status');
-
-        // Permissions endpoint
         Route::get('/permissions/list', [RoleController::class, 'getPermissions'])->name('permissions');
+    });
+
+    // Allergy Routes
+    Route::prefix('allergies')->name('allergies.')->group(function () {
+        Route::get('/', [AllergyController::class, 'index'])->name('index');
+        Route::post('/', [AllergyController::class, 'store'])->name('store');
+        Route::put('/{allergy}', [AllergyController::class, 'update'])->name('update');
+        Route::patch('/{allergy}/status', [AllergyController::class, 'updateStatus'])->name('update-status');
+        Route::delete('/{allergy}', [AllergyController::class, 'destroy'])->name('destroy');
+        Route::delete('/bulk/delete', [AllergyController::class, 'bulkDelete'])->name('bulk.delete');
+        Route::put('/bulk/status', [AllergyController::class, 'bulkUpdateStatus'])->name('bulk.status');
+    });
+
+    // Medical Condition Routes
+    Route::prefix('medical-conditions')->name('medical-conditions.')->group(function () {
+        Route::get('/', [MedicalConditionController::class, 'index'])->name('index');
+        Route::post('/', [MedicalConditionController::class, 'store'])->name('store');
+        Route::put('/{medicalCondition}', [MedicalConditionController::class, 'update'])->name('update');
+        Route::patch('/{medicalCondition}/status', [MedicalConditionController::class, 'updateStatus'])->name('update-status');
+        Route::delete('/{medicalCondition}', [MedicalConditionController::class, 'destroy'])->name('destroy');
+        Route::delete('/bulk/delete', [MedicalConditionController::class, 'bulkDelete'])->name('bulk.delete');
+        Route::put('/bulk/status', [MedicalConditionController::class, 'bulkUpdateStatus'])->name('bulk.status');
     });
 });
 
