@@ -51,7 +51,7 @@ export default [
             "react/prop-types": "off",
 
             // react security
-            "react/no-unescaped-entities": ["warn", { forbid: [">", '"'] }],
+            "react/no-unescaped-entities": "off",
             "react-hooks/exhaustive-deps": "off",
 
             // clean unused stuff

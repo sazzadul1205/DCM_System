@@ -103,6 +103,13 @@ export default function AuthenticatedLayout({ children }) {
         href: route('roles.index'),
         permission_key: "roles.index",
         current: currentRoute === 'roles.index',
+      },
+      {
+        name: 'Manage Allergies',
+        icon: FaUserShield,
+        href: route('allergies.index'),
+        permission_key: "allergies.index",
+        current: currentRoute === 'allergies.index',
       }
     );
 

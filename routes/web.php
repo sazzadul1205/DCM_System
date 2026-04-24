@@ -1,12 +1,19 @@
 <?php
 
-use App\Http\Controllers\AllergyController;
-use App\Http\Controllers\MedicalConditionController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\RoleController;
-use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Route;
+// Inertia
 use Inertia\Inertia;
+
+// Support
+use Illuminate\Support\Facades\Route;
+
+// Foundation
+use Illuminate\Foundation\Application;
+
+// Controllers
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\AllergyController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\MedicalConditionController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [

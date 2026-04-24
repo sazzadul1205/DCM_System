@@ -43,12 +43,18 @@ export default function FormField({
   onBlur,
   onFocus,
 
+  // Textarea / Select
+  options = [],  // for type="select"
+  rows = 3,      // for type="textarea"
+
   // Additional Props
   ...props
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
+  const isTextarea = type === 'textarea';
+  const isSelect = type === 'select';
   const isPassword = type === 'password';
   const inputType = isPassword && showPassword ? 'text' : type;
 
@@ -70,13 +76,20 @@ export default function FormField({
 
   const currentVariant = variantStyles[variant] || variantStyles.default;
 
+  // Base input/textarea/select classes
+  const baseInputClasses = `w-full rounded-lg bg-transparent py-2.5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${inputClassName}`;
+
+  // Icon padding
+  const leftPad = (Icon && iconPosition === 'left') ? 'pl-10' : 'pl-3';
+  const rightPad = ((Icon && iconPosition === 'right') || isPassword) ? 'pr-10' : 'pr-3';
+
   return (
     <div className={`w-full ${className}`}>
       {/* Label */}
       {!hideLabel && label && (
         <label
           htmlFor={id}
-          className={`mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors duration-200${disabled ? 'opacity-50' : ''}${isFocused ? 'text-blue-600 dark:text-blue-400' : ''}${labelClassName}`}
+          className={`mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors duration-200${disabled ? 'opacity-50' : ''}${isFocused ? 'text-blue-600 dark:text-blue-400' : ''} ${labelClassName}`}
         >
           {label}
           {required && (
@@ -87,7 +100,7 @@ export default function FormField({
 
       {/* Input Container */}
       <div
-        className={` relative flex w-full items-center rounded-lg transition-all duration-200 ${currentVariant.container} ${isFocused ? currentVariant.focus : ''} ${disabled ? 'cursor-not-allowed opacity-50' : ''} ${error ? 'border-red-500 dark:border-red-400' : ''}`}
+        className={`relative flex w-full items-center rounded-lg transition-all duration-200 ${currentVariant.container} ${isFocused ? currentVariant.focus : ''} ${disabled ? 'cursor-not-allowed opacity-50' : ''} ${error ? 'border-red-500 dark:border-red-400' : ''}`}
       >
         {/* Left Icon */}
         {Icon && iconPosition === 'left' && (
@@ -98,30 +111,85 @@ export default function FormField({
           </div>
         )}
 
-        {/* Input Field */}
-        <input
-          id={id}
-          name={name}
-          type={inputType}
-          value={value}
-          placeholder={placeholder}
-          autoComplete={autoComplete}
-          autoFocus={autoFocus}
-          required={required}
-          disabled={disabled}
-          readOnly={readOnly}
-          onChange={onChange}
-          onBlur={(e) => {
-            setIsFocused(false);
-            onBlur?.(e);
-          }}
-          onFocus={(e) => {
-            setIsFocused(true);
-            onFocus?.(e);
-          }}
-          className={` w-full rounded-lg bg-transparent py-2.5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${Icon && iconPosition === 'left' ? 'pl-10' : 'pl-3'} ${(Icon && iconPosition === 'right') || isPassword ? 'pr-10' : 'pr-3'} ${inputClassName}`}
-          {...props}
-        />
+        {/* Element: select | textarea | input */}
+        {isSelect ? (
+          <select
+            id={id}
+            name={name}
+            value={value}
+            disabled={disabled}
+            required={required}
+            onChange={onChange}
+            onBlur={(e) => {
+              setIsFocused(false);
+              onBlur?.(e);
+            }}
+            onFocus={(e) => {
+              setIsFocused(true);
+              onFocus?.(e);
+            }}
+            className={`${baseInputClasses} ${leftPad} ${rightPad} appearance-none`}
+            {...props}
+          >
+            {placeholder && (
+              <option value="" disabled hidden>
+                {placeholder}
+              </option>
+            )}
+            {options.map((opt) => (
+              <option key={opt.value} value={opt.value} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        ) : isTextarea ? (
+          <textarea
+            id={id}
+            name={name}
+            value={value}
+            placeholder={placeholder}
+            autoFocus={autoFocus}
+            required={required}
+            disabled={disabled}
+            readOnly={readOnly}
+            rows={rows}
+            onChange={onChange}
+            onBlur={(e) => {
+              setIsFocused(false);
+              onBlur?.(e);
+            }}
+            onFocus={(e) => {
+              setIsFocused(true);
+              onFocus?.(e);
+            }}
+            className={`${baseInputClasses} ${leftPad} ${rightPad} resize-y min-h-[80px]`}
+            {...props}
+          />
+        ) : (
+          <input
+            id={id}
+            name={name}
+            type={inputType}
+            value={value}
+            placeholder={placeholder}
+            autoComplete={autoComplete}
+            autoFocus={autoFocus}
+            required={required}
+            disabled={disabled}
+            readOnly={readOnly}
+            onChange={onChange}
+            onBlur={(e) => {
+              setIsFocused(false);
+              onBlur?.(e);
+            }}
+            onFocus={(e) => {
+              setIsFocused(true);
+              onFocus?.(e);
+            }}
+            className={`${baseInputClasses} ${leftPad} ${rightPad}`}
+            {...props}
+          />
+        )}
 
         {/* Right Icon or Password Toggle */}
         {isPassword ? (
@@ -133,13 +201,9 @@ export default function FormField({
             disabled={disabled}
           >
             {showPassword ? (
-              <FaEyeSlash
-                className={`h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors duration-200`}
-              />
+              <FaEyeSlash className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors duration-200" />
             ) : (
-              <FaEye
-                className={`h-5 w-5text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors duration-200`}
-              />
+              <FaEye className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors duration-200" />
             )}
           </button>
         ) : Icon && iconPosition === 'right' ? (

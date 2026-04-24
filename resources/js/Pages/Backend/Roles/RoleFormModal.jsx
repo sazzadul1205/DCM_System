@@ -9,7 +9,8 @@ import {
   FaTachometerAlt,
   FaUserShield,
   FaIdCard,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaAllergies
 } from 'react-icons/fa';
 
 // Components
@@ -45,6 +46,10 @@ export default function RoleFormModal({
     'Roles': {
       icon: FaUserShield,
       permissions: availablePermissions.filter(p => p.startsWith('roles.'))
+    },
+    "Allergies": {
+      icon: FaAllergies,
+      permissions: availablePermissions.filter(p => p.startsWith('allergies.'))
     },
   };
 

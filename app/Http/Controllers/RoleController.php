@@ -23,6 +23,10 @@ class RoleController extends Controller
             'roles.create',
             'roles.edit',
             'roles.delete',
+            'allergies.index',
+            'allergies.create',
+            'allergies.edit',
+            'allergies.delete',
         ];
     }
 
