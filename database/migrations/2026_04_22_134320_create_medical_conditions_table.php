@@ -12,7 +12,7 @@ return new class extends Migration
         Schema::create('medical_conditions', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
-            $table->enum('category', ['general', 'dental', 'chronic', 'acute']);
+            $table->string('category');
             $table->text('description')->nullable();
             $table->boolean('is_dental')->default(false);
             $table->boolean('requires_attention')->default(true);

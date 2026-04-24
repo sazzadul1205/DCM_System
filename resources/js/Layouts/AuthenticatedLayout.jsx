@@ -105,11 +105,18 @@ export default function AuthenticatedLayout({ children }) {
         current: currentRoute === 'roles.index',
       },
       {
-        name: 'Manage Allergies',
+        name: 'Manage Allergies Options',
         icon: FaUserShield,
         href: route('allergies.index'),
         permission_key: "allergies.index",
         current: currentRoute === 'allergies.index',
+      },
+      {
+        name: 'Manage Medical Conditions Options',
+        icon: FaUserShield,
+        href: route('medical-conditions.index'),
+        permission_key: "medical-conditions.index",
+        current: currentRoute === 'medical-conditions.index',
       }
     );
 

@@ -17,7 +17,7 @@ export default function PermissionGroup({
   const [isOpen, setIsOpen] = useState(true);
 
   // Functions
-  const groupPermissions = permissions.filter(perm => perm.startsWith(groupName.toLowerCase()));
+  const groupPermissions = permissions;
   const allSelected = groupPermissions.every(perm => selectedPermissions.includes(perm));
 
   // Handle Select All

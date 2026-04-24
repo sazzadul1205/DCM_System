@@ -1,93 +1,58 @@
-// pages/Backend/Roles/RoleFormModal.jsx
+// Pages/Backend/MedicalConditions/MedicalConditionFormModal.jsx
 
 // React
 import { useEffect } from 'react';
 
 // Icons
 import {
-  FaUser,
-  FaTachometerAlt,
-  FaUserShield,
-  FaIdCard,
+  FaNotesMedical,
+  FaTags,
   FaExclamationTriangle,
-  FaAllergies,
-  FaNotesMedical
+  FaTooth,
+  FaHeartbeat,
+  FaInfoCircle,
 } from 'react-icons/fa';
 
 // Components
 import Modal from '@/Components/Modal';
 import FormField from '@/Components/FormField';
 
-// Helpers
-import PermissionGroup from './PermissionGroup';
-
-export default function RoleFormModal({
+export default function MedicalConditionFormModal({
   isOpen,
   onClose,
   title,
-  role,
+  condition,
   formData,
   setFormData,
-  availablePermissions,
   onSubmit,
   processing,
   errors = {}
 }) {
-  // Group permissions
-  const groupedPermissions = {
-    'Dashboard': {
-      icon: FaTachometerAlt,
-      permissions: availablePermissions.filter(p => p.startsWith('dashboard.'))
-    },
-    'Profile': {
-      icon: FaIdCard,
-      permissions: availablePermissions.filter(p => p.startsWith('profile.'))
-    },
-    'Roles': {
-      icon: FaUserShield,
-      permissions: availablePermissions.filter(p => p.startsWith('roles.'))
-    },
-    "Allergies": {
-      icon: FaAllergies,
-      permissions: availablePermissions.filter(p => p.startsWith('allergies.'))
-    },
-    "Medical Conditions": {
-      icon: FaNotesMedical,
-      permissions: availablePermissions.filter(p => p.startsWith('medical-conditions.'))
-    },
-  };
-
-  // Handle permission toggle
-  const handlePermissionToggle = (permission, checked) => {
-    if (checked) {
-      setFormData('permissions', [...formData.permissions, permission]);
-    } else {
-      setFormData('permissions', formData.permissions.filter(p => p !== permission));
-    }
-  };
-
-  // Generate slug from name (only for new roles)
-  useEffect(() => {
-    if (!role && formData.name && !formData.slug) {
-      const slug = formData.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-      setFormData('slug', slug);
-    }
-  }, [formData.name, role]);
 
   // Clear form when modal opens/closes
   useEffect(() => {
-    if (!isOpen && !role) {
+    if (!isOpen && !condition) {
       // Reset form when modal closes
       setFormData('name', '');
-      setFormData('slug', '');
-      setFormData('permissions', []);
+      setFormData('category', '');
       setFormData('description', '');
-      setFormData('status', 'active');
+      setFormData('is_dental', false);
+      setFormData('requires_attention', false);
     }
   }, [isOpen]);
+
+  // Category options
+  const categoryOptions = [
+    { value: '', label: 'Choose Medical Category' },
+    { value: 'Cardiovascular', label: 'Cardiovascular' },
+    { value: 'Respiratory', label: 'Respiratory' },
+    { value: 'Neurological', label: 'Neurological' },
+    { value: 'Endocrine', label: 'Endocrine' },
+    { value: 'Gastrointestinal', label: 'Gastrointestinal' },
+    { value: 'Dental', label: 'Dental' },
+    { value: 'Mental Health', label: 'Mental Health' },
+    { value: 'Other', label: 'Other' },
+  ];
 
   return (
     <Modal
@@ -95,15 +60,15 @@ export default function RoleFormModal({
       onClose={onClose}
       title={
         <div className="flex items-center gap-2">
-          <FaUserShield className="text-blue-600" />
+          <FaNotesMedical className="text-blue-600" />
           <span>{title}</span>
         </div>
       }
-      size="xl"
+      size="lg"
       footer={
         <div className="flex justify-between items-center w-full">
           <span className="text-sm text-gray-500">
-            {formData.permissions.length} permissions selected
+            Fill in the medical condition details
           </span>
 
           <div className="flex gap-2">
@@ -117,19 +82,19 @@ export default function RoleFormModal({
 
             <button
               type="submit"
-              form="role-form"
+              form="condition-form"
               disabled={processing}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {processing
-                ? (role ? 'Updating...' : 'Creating...')
-                : (role ? 'Update Role' : 'Create Role')}
+                ? (condition ? 'Updating...' : 'Creating...')
+                : (condition ? 'Update Condition' : 'Create Condition')}
             </button>
           </div>
         </div>
       }
     >
-      <form id="role-form" onSubmit={onSubmit}>
+      <form id="condition-form" onSubmit={onSubmit}>
         <div className="space-y-6">
 
           {/* Error Summary */}
@@ -154,7 +119,7 @@ export default function RoleFormModal({
           {/* BASIC INFO CARD */}
           <div className="px-5">
             <div className="flex items-center gap-2 mb-4">
-              <FaUser className="text-blue-500" />
+              <FaInfoCircle className="text-blue-500" />
               <h4 className="font-semibold text-gray-900 dark:text-white">
                 Basic Information
               </h4>
@@ -166,28 +131,28 @@ export default function RoleFormModal({
               <FormField
                 id="name"
                 name="name"
-                label="Role Name"
+                label="Condition Name"
                 value={formData.name}
                 onChange={(e) => setFormData('name', e.target.value)}
-                placeholder="Enter role name"
+                placeholder="Enter medical condition name"
                 required
                 autoFocus
-                icon={FaUser}
+                icon={FaNotesMedical}
                 error={errors.name}
               />
 
-              {/* SLUG */}
+              {/* CATEGORY */}
               <FormField
-                id="slug"
-                name="slug"
-                label="Slug"
-                value={formData.slug}
-                onChange={(e) => setFormData('slug', e.target.value)}
-                placeholder="Enter role slug (e.g., editor, viewer)"
+                id="category"
+                name="category"
+                label="Category"
+                type="select"
+                value={formData.category}
+                onChange={(e) => setFormData('category', e.target.value)}
+                options={categoryOptions}
                 required
-                autoFocus
-                icon={FaUser}
-                error={errors.slug}
+                icon={FaTags}
+                error={errors.category}
               />
 
               {/* DESCRIPTION */}
@@ -198,7 +163,7 @@ export default function RoleFormModal({
                   label="Description"
                   value={formData.description}
                   onChange={(e) => setFormData('description', e.target.value)}
-                  placeholder="Optional description..."
+                  placeholder="Describe the medical condition in detail..."
                   type="textarea"
                   error={errors.description}
                 />
@@ -206,47 +171,51 @@ export default function RoleFormModal({
             </div>
           </div>
 
-          {/* PERMISSIONS CARD */}
-          <div className=" px-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <FaUserShield className="text-purple-500" />
-                <h4 className="font-semibold text-gray-900 dark:text-white">
-                  Permissions
-                </h4>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFormData('permissions', [])}
-                  className="text-xs text-red-500 hover:underline"
-                >
-                  Clear all
-                </button>
-              </div>
+          {/* ADDITIONAL INFO CARD */}
+          <div className="px-5">
+            <div className="flex items-center gap-2 mb-4">
+              <FaHeartbeat className="text-purple-500" />
+              <h4 className="font-semibold text-gray-900 dark:text-white">
+                Additional Information
+              </h4>
             </div>
 
-            <p className="text-sm text-gray-500 mb-4">
-              Assign permissions by category. Click Select All to quickly assign all permissions in a category.
+            <div className="flex justify-between items-center space-y-4">
+              {/* DENTAL CHECKBOX */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="is_dental"
+                  checked={formData.is_dental}
+                  onChange={(e) => setFormData('is_dental', e.target.checked)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
+                />
+                <label htmlFor="is_dental" className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                  <FaTooth className="text-pink-500" />
+                  Dental Condition
+                </label>
+              </div>
+
+              {/* REQUIRES ATTENTION CHECKBOX */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="requires_attention"
+                  checked={formData.requires_attention}
+                  onChange={(e) => setFormData('requires_attention', e.target.checked)}
+                  className="rounded border-gray-300 text-yellow-600 focus:ring-yellow-500 h-4 w-4"
+                />
+                <label htmlFor="requires_attention" className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                  <FaExclamationTriangle className="text-red-500" />
+                  Requires Special Attention
+                </label>
+              </div>
+
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              Marking "Requires Special Attention" will flag this condition for immediate review in patient records.
             </p>
-
-            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-              {Object.entries(groupedPermissions).map(([groupName, group]) => (
-                group.permissions.length > 0 && (
-                  <PermissionGroup
-                    key={groupName}
-                    groupName={groupName}
-                    permissions={group.permissions}
-                    selectedPermissions={formData.permissions}
-                    onPermissionChange={handlePermissionToggle}
-                    icon={group.icon}
-                  />
-                )
-              ))}
-            </div>
           </div>
-
         </div>
       </form>
 

@@ -19,6 +19,7 @@ class RoleController extends Controller
             'profile.view',
             'profile.edit',
             'profile.complete',
+            'roles.index',
             'roles.view',
             'roles.create',
             'roles.edit',
@@ -27,6 +28,10 @@ class RoleController extends Controller
             'allergies.create',
             'allergies.edit',
             'allergies.delete',
+            'medical-conditions.index',
+            'medical-conditions.create',
+            'medical-conditions.edit',
+            'medical-conditions.delete',
         ];
     }
 
