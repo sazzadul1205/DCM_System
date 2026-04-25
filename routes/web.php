@@ -14,6 +14,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\AllergyController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MedicalConditionController;
+use App\Http\Controllers\PatientController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -71,6 +72,38 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{medicalCondition}', [MedicalConditionController::class, 'destroy'])->name('destroy');
         Route::delete('/bulk/delete', [MedicalConditionController::class, 'bulkDelete'])->name('bulk.delete');
         Route::put('/bulk/status', [MedicalConditionController::class, 'bulkUpdateStatus'])->name('bulk.status');
+    });
+
+    // Patient Routes
+    Route::prefix('patients')->name('patients.')->group(function () {
+        // Main routes
+        Route::get('/', [PatientController::class, 'index'])->name('index');
+        Route::get('/create', [PatientController::class, 'create'])->name('create');
+        Route::post('/', [PatientController::class, 'store'])->name('store');
+        Route::post('/quick-store', [PatientController::class, 'quickStore'])->name('quick-store');
+        Route::get('/{patient}', [PatientController::class, 'show'])->name('show');
+        Route::get('/{patient}/edit', [PatientController::class, 'edit'])->name('edit');
+        Route::put('/{patient}', [PatientController::class, 'update'])->name('update');
+        Route::patch('/{patient}/status', [PatientController::class, 'updateStatus'])->name('update-status');
+        Route::delete('/{patient}', [PatientController::class, 'destroy'])->name('destroy');
+
+        // Archived routes
+        Route::get('/archived/list', [PatientController::class, 'archived'])->name('archived');
+        Route::patch('/{id}/restore', [PatientController::class, 'restore'])->name('restore');
+        Route::delete('/{id}/force-delete', [PatientController::class, 'forceDelete'])->name('force-delete');
+
+        // Bulk operations
+        Route::delete('/bulk/delete', [PatientController::class, 'bulkDelete'])->name('bulk.delete');
+        Route::put('/bulk/restore', [PatientController::class, 'bulkRestore'])->name('bulk.restore');
+        Route::delete('/bulk/force-delete', [PatientController::class, 'bulkForceDelete'])->name('bulk.force-delete');
+        Route::put('/bulk/status', [PatientController::class, 'bulkUpdateStatus'])->name('bulk.status');
+
+        // Print and export
+        Route::get('/print/list', [PatientController::class, 'print'])->name('print');
+        Route::get('/export/csv', [PatientController::class, 'export'])->name('export');
+
+        // Statistics
+        Route::get('/statistics/data', [PatientController::class, 'statistics'])->name('statistics');
     });
 });
 

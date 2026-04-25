@@ -15,7 +15,11 @@ import {
   FaTimes,
   FaUserCheck,
   FaIdCard,
-  FaUserShield
+  FaUserShield,
+  FaAllergies,
+  FaNotesMedical,
+  FaUserInjured,
+  FaUserPlus
 } from 'react-icons/fa';
 
 export default function AuthenticatedLayout({ children }) {
@@ -106,18 +110,32 @@ export default function AuthenticatedLayout({ children }) {
       },
       {
         name: 'Manage Allergies Options',
-        icon: FaUserShield,
+        icon: FaAllergies,
         href: route('allergies.index'),
         permission_key: "allergies.index",
         current: currentRoute === 'allergies.index',
       },
       {
         name: 'Manage Medical Conditions Options',
-        icon: FaUserShield,
+        icon: FaNotesMedical,
         href: route('medical-conditions.index'),
         permission_key: "medical-conditions.index",
         current: currentRoute === 'medical-conditions.index',
-      }
+      },
+      {
+        name: 'Patient List',
+        icon: FaUserInjured,
+        href: route('patients.index'),
+        permission_key: "patients.index",
+        current: currentRoute === 'patients.index',
+      },
+      {
+        name: 'Register New Patient',
+        icon: FaUserPlus,
+        href: route('patients.create'),
+        permission_key: "patients.create",
+        current: currentRoute === 'patients.create',
+      },
     );
 
     // Edit Profile - Only show when on the Edit Profile page, and it won't be clickable

@@ -32,6 +32,17 @@ class RoleController extends Controller
             'medical-conditions.create',
             'medical-conditions.edit',
             'medical-conditions.delete',
+            'patients.index',
+            'patients.view',
+            'patients.create',
+            'patients.quick-store',
+            'patients.edit',
+            'patients.delete',
+            'patients.restore',
+            'patients.force-delete',
+            'patients.print',
+            'patients.export',
+            'patients.statistics',
         ];
     }
 

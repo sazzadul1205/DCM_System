@@ -11,7 +11,8 @@ import {
   FaIdCard,
   FaExclamationTriangle,
   FaAllergies,
-  FaNotesMedical
+  FaNotesMedical,
+  FaUserInjured
 } from 'react-icons/fa';
 
 // Components
@@ -54,6 +55,10 @@ export default function RoleFormModal({
     "Medical Conditions": {
       icon: FaNotesMedical,
       permissions: availablePermissions.filter(p => p.startsWith('medical-conditions.'))
+    },
+    "Patients": {
+      icon: FaUserInjured,
+      permissions: availablePermissions.filter(p => p.startsWith('patients.'))
     },
   };
 

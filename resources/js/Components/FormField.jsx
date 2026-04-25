@@ -18,6 +18,9 @@ export default function FormField({
   required = false,
   disabled = false,
   readOnly = false,
+  maxLength,  // Add maxLength support
+  minLength,  // Add minLength support
+  pattern,    // Add pattern support
 
   // Label Props
   label,
@@ -52,11 +55,31 @@ export default function FormField({
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [charCount, setCharCount] = useState(value?.length || 0);
 
   const isTextarea = type === 'textarea';
   const isSelect = type === 'select';
   const isPassword = type === 'password';
   const inputType = isPassword && showPassword ? 'text' : type;
+
+  // Handle change with character limit tracking
+  const handleChange = (e) => {
+    let newValue = e.target.value;
+
+    // Apply maxLength restriction if specified
+    if (maxLength && newValue.length > maxLength) {
+      newValue = newValue.substring(0, maxLength);
+      e.target.value = newValue;
+    }
+
+    setCharCount(newValue.length);
+    onChange?.(e);
+  };
+
+  // Update char count when value changes externally
+  useState(() => {
+    setCharCount(value?.length || 0);
+  }, [value]);
 
   // Variant styles
   const variantStyles = {
@@ -81,21 +104,30 @@ export default function FormField({
 
   // Icon padding
   const leftPad = (Icon && iconPosition === 'left') ? 'pl-10' : 'pl-3';
-  const rightPad = ((Icon && iconPosition === 'right') || isPassword) ? 'pr-10' : 'pr-3';
+  const rightPad = ((Icon && iconPosition === 'right') || isPassword || (maxLength && (isTextarea || type === 'text' || type === 'email' || type === 'tel'))) ? 'pr-10' : 'pr-3';
 
   return (
     <div className={`w-full ${className}`}>
-      {/* Label */}
+      {/* Label with character counter */}
       {!hideLabel && label && (
-        <label
-          htmlFor={id}
-          className={`mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors duration-200${disabled ? 'opacity-50' : ''}${isFocused ? 'text-blue-600 dark:text-blue-400' : ''} ${labelClassName}`}
-        >
-          {label}
-          {required && (
-            <span className="ml-1 text-red-500 dark:text-red-400">*</span>
+        <div className="mb-2 flex items-center justify-between">
+          <label
+            htmlFor={id}
+            className={`block text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors duration-200${disabled ? 'opacity-50' : ''}${isFocused ? 'text-blue-600 dark:text-blue-400' : ''} ${labelClassName}`}
+          >
+            {label}
+            {required && (
+              <span className="ml-1 text-red-500 dark:text-red-400">*</span>
+            )}
+          </label>
+
+          {/* Character Counter for text/textarea fields */}
+          {maxLength && (type === 'text' || type === 'email' || type === 'tel' || type === 'textarea') && (
+            <span className={`text-xs ${charCount > maxLength * 0.9 ? 'text-orange-500' : 'text-gray-400'} transition-colors`}>
+              {charCount}/{maxLength}
+            </span>
           )}
-        </label>
+        </div>
       )}
 
       {/* Input Container */}
@@ -143,28 +175,38 @@ export default function FormField({
             ))}
           </select>
         ) : isTextarea ? (
-          <textarea
-            id={id}
-            name={name}
-            value={value}
-            placeholder={placeholder}
-            autoFocus={autoFocus}
-            required={required}
-            disabled={disabled}
-            readOnly={readOnly}
-            rows={rows}
-            onChange={onChange}
-            onBlur={(e) => {
-              setIsFocused(false);
-              onBlur?.(e);
-            }}
-            onFocus={(e) => {
-              setIsFocused(true);
-              onFocus?.(e);
-            }}
-            className={`${baseInputClasses} ${leftPad} ${rightPad} resize-y min-h-[80px]`}
-            {...props}
-          />
+          <>
+            <textarea
+              id={id}
+              name={name}
+              value={value}
+              placeholder={placeholder}
+              autoFocus={autoFocus}
+              required={required}
+              disabled={disabled}
+              readOnly={readOnly}
+              rows={rows}
+              maxLength={maxLength}
+              minLength={minLength}
+              onChange={handleChange}
+              onBlur={(e) => {
+                setIsFocused(false);
+                onBlur?.(e);
+              }}
+              onFocus={(e) => {
+                setIsFocused(true);
+                onFocus?.(e);
+              }}
+              className={`${baseInputClasses} ${leftPad} ${rightPad} resize-y min-h-[80px]`}
+              {...props}
+            />
+            {/* Character counter inside for textarea when no label */}
+            {maxLength && hideLabel && (
+              <div className="absolute bottom-2 right-3 text-xs text-gray-400">
+                {charCount}/{maxLength}
+              </div>
+            )}
+          </>
         ) : (
           <input
             id={id}
@@ -177,7 +219,10 @@ export default function FormField({
             required={required}
             disabled={disabled}
             readOnly={readOnly}
-            onChange={onChange}
+            maxLength={maxLength}
+            minLength={minLength}
+            pattern={pattern}
+            onChange={handleChange}
             onBlur={(e) => {
               setIsFocused(false);
               onBlur?.(e);
@@ -191,7 +236,7 @@ export default function FormField({
           />
         )}
 
-        {/* Right Icon or Password Toggle */}
+        {/* Right Icon or Password Toggle or Character Counter */}
         {isPassword ? (
           <button
             type="button"
@@ -232,6 +277,15 @@ export default function FormField({
             />
           </svg>
           <span>{error}</span>
+        </div>
+      )}
+
+      {/* Optional hint for max length (when no label is shown) */}
+      {maxLength && !hideLabel && (type === 'text' || type === 'email' || type === 'tel' || type === 'textarea') && (
+        <div className="mt-1 text-right">
+          <span className="text-xs text-gray-400">
+            Max {maxLength} characters
+          </span>
         </div>
       )}
     </div>
