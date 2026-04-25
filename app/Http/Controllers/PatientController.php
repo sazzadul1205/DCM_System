@@ -421,6 +421,58 @@ class PatientController extends Controller
             ->select('id', 'name', 'email')
             ->get();
 
+        $availableAllergies = Allergy::where('status', 'active')->select('id', 'name', 'type')->get();
+        $availableConditions = MedicalCondition::where('status', 'active')->select('id', 'name', 'category')->get();
+
+        // Get existing allergies for this patient
+        $existingAllergies = PatientAllergy::with('allergy')
+            ->where('patient_id', $patient->id)
+            ->where('is_active', true)
+            ->get()
+            ->map(function ($patientAllergy) {
+                return [
+                    'allergy_id' => $patientAllergy->allergy_id,
+                    'allergy_name' => $patientAllergy->allergy->name,
+                    'allergy_type' => $patientAllergy->allergy->type,
+                    'severity' => $patientAllergy->severity,
+                    'reaction_notes' => $patientAllergy->reaction_notes,
+                    'diagnosed_date' => $patientAllergy->diagnosed_date,
+                ];
+            });
+
+        // Get existing medical conditions for this patient
+        $existingConditions = PatientMedicalCondition::with('condition')
+            ->where('patient_id', $patient->id)
+            ->where('is_active', true)
+            ->get()
+            ->map(function ($patientCondition) {
+                return [
+                    'condition_id' => $patientCondition->condition_id,
+                    'condition_name' => $patientCondition->condition->name,
+                    'category' => $patientCondition->condition->category,
+                    'severity' => $patientCondition->severity,
+                    'diagnosed_date' => $patientCondition->diagnosed_date,
+                    'is_active' => $patientCondition->is_active,
+                    'notes' => $patientCondition->notes,
+                ];
+            });
+
+        // Get existing medications for this patient
+        $existingMedications = PatientMedication::where('patient_id', $patient->id)
+            ->orderBy('start_date', 'desc')
+            ->get()
+            ->map(function ($medication) {
+                return [
+                    'medication_name' => $medication->medication_name,
+                    'dosage' => $medication->dosage,
+                    'frequency' => $medication->frequency,
+                    'start_date' => $medication->start_date,
+                    'end_date' => $medication->end_date,
+                    'notes' => $medication->notes,
+                    'is_active' => $medication->is_active,
+                ];
+            });
+
         return Inertia::render('Backend/Patients/Edit', [
             'patient' => [
                 'id' => $patient->id,
@@ -447,6 +499,11 @@ class PatientController extends Controller
                 'registration_date' => $patient->registration_date,
             ],
             'referrers' => $referrers,
+            'availableAllergies' => $availableAllergies,
+            'availableConditions' => $availableConditions,
+            'existingAllergies' => $existingAllergies,
+            'existingConditions' => $existingConditions,
+            'existingMedications' => $existingMedications,
         ]);
     }
 
@@ -467,7 +524,7 @@ class PatientController extends Controller
             'emergency_contact_phone' => 'nullable|string|max:20',
             'emergency_contact_relation' => 'nullable|string|max:100',
             'referred_by_user_id' => 'nullable|exists:users,id',
-            'referral_source' => 'nullable|string|max:255',
+            'referral_source' => 'nullable|in:doctor,patient,walk_in,social_media,news,other',
             'referral_notes' => 'nullable|string',
             'address_division' => 'nullable|string|max:100',
             'address_district' => 'nullable|string|max:100',
@@ -476,14 +533,110 @@ class PatientController extends Controller
             'address_details' => 'nullable|string',
             'status' => 'required|in:active,inactive',
             'registration_date' => 'required|date',
+            'allergies' => 'nullable',
+            'conditions' => 'nullable',
+            'medications' => 'nullable',
         ]);
 
         $validated['updated_by'] = Auth::id();
 
-        $patient->update($validated);
+        DB::beginTransaction();
 
-        return redirect()->route('patients.show', $patient->id)
-            ->with('success', 'Patient updated successfully.');
+        try {
+            // Update patient basic info
+            $patient->update($validated);
+
+            // Update Allergies - Delete existing and recreate
+            PatientAllergy::where('patient_id', $patient->id)->delete();
+
+            $allergies = $request->input('allergies');
+            if ($allergies) {
+                if (is_string($allergies)) {
+                    $allergies = json_decode($allergies, true);
+                }
+
+                if (is_array($allergies)) {
+                    foreach ($allergies as $allergy) {
+                        PatientAllergy::create([
+                            'patient_id' => $patient->id,
+                            'allergy_id' => $allergy['allergy_id'],
+                            'severity' => $allergy['severity'] ?? 'Mild',
+                            'reaction_notes' => $allergy['reaction_notes'] ?? null,
+                            'diagnosed_date' => $allergy['diagnosed_date'] ?? null,
+                            'is_active' => true,
+                            'created_by' => Auth::id(),
+                            'updated_by' => Auth::id(),
+                        ]);
+                    }
+                }
+            }
+
+            // Update Medical Conditions
+            PatientMedicalCondition::where('patient_id', $patient->id)->delete();
+
+            $conditions = $request->input('conditions');
+            if ($conditions) {
+                if (is_string($conditions)) {
+                    $conditions = json_decode($conditions, true);
+                }
+
+                if (is_array($conditions)) {
+                    foreach ($conditions as $condition) {
+                        PatientMedicalCondition::create([
+                            'patient_id' => $patient->id,
+                            'condition_id' => $condition['condition_id'],
+                            'severity' => $condition['severity'] ?? 'Mild',
+                            'diagnosed_date' => $condition['diagnosed_date'] ?? null,
+                            'is_active' => $condition['is_active'] ?? true,
+                            'notes' => $condition['notes'] ?? null,
+                            'created_by' => Auth::id(),
+                            'updated_by' => Auth::id(),
+                        ]);
+                    }
+                }
+            }
+
+            // Update Medications
+            PatientMedication::where('patient_id', $patient->id)->delete();
+
+            $medications = $request->input('medications');
+            if ($medications) {
+                if (is_string($medications)) {
+                    $medications = json_decode($medications, true);
+                }
+
+                if (is_array($medications)) {
+                    foreach ($medications as $medication) {
+                        PatientMedication::create([
+                            'patient_id' => $patient->id,
+                            'medication_name' => $medication['medication_name'],
+                            'dosage' => $medication['dosage'] ?? null,
+                            'frequency' => $medication['frequency'] ?? null,
+                            'start_date' => $medication['start_date'] ?? null,
+                            'end_date' => $medication['end_date'] ?? null,
+                            'is_active' => $medication['is_active'] ?? true,
+                            'prescribed_by' => Auth::id(),
+                            'notes' => $medication['notes'] ?? null,
+                            'created_by' => Auth::id(),
+                            'updated_by' => Auth::id(),
+                        ]);
+                    }
+                }
+            }
+
+            DB::commit();
+
+            return redirect()->route('patients.show', $patient->id)
+                ->with('success', 'Patient updated successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('Patient update failed: ' . $e->getMessage());
+
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Failed to update patient: ' . $e->getMessage()]);
+        }
     }
 
     /**
