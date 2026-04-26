@@ -38,6 +38,7 @@ class RoleController extends Controller
             'patients.quick-store',
             'patients.edit',
             'patients.delete',
+            'patients.archived',
             'patients.restore',
             'patients.force-delete',
             'patients.print',

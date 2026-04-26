@@ -38,18 +38,6 @@ export default function PatientAllergies({ data, setData, availableAllergies }) 
     a.type?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  const showErrorToast = (message) => {
-    Swal.fire({
-      toast: true,
-      position: 'top-end',
-      icon: 'error',
-      title: message,
-      showConfirmButton: false,
-      timer: 3000,
-      timerProgressBar: true,
-    });
-  };
-
   const showWarningToast = (message) => {
     Swal.fire({
       toast: true,

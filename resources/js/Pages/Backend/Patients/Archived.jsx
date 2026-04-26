@@ -169,7 +169,7 @@ export default function Archived({ archivedPatients, filters }) {
 
     setShowBulkRestoreModal(false);
 
-    router.patch(route('patients.bulk.restore'), {
+    router.put(route('patients.bulk.restore'), {
       ids: selectedPatients,
     }, {
       preserveScroll: true,
@@ -202,6 +202,7 @@ export default function Archived({ archivedPatients, filters }) {
 
     setShowBulkForceDeleteModal(false);
 
+    // Fix: Use post() with _method DELETE or ensure the data format is correct
     router.delete(route('patients.bulk.force-delete'), {
       data: { ids: selectedPatients },
       preserveScroll: true,
@@ -210,6 +211,7 @@ export default function Archived({ archivedPatients, filters }) {
         showSuccessToast(`${count} patient(s) permanently deleted!`);
       },
       onError: (errors) => {
+        console.error('Bulk force delete error:', errors);
         showErrorToast(
           Object.values(errors).flat()[0] || 'Failed to delete patients'
         );
@@ -480,13 +482,6 @@ export default function Archived({ archivedPatients, filters }) {
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="flex gap-2">
-                        {/* <button
-                          onClick={() => router.get(route('patients.show', patient.id))}
-                          className="p-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all"
-                          title="View details"
-                        >
-                          <FaEye className="h-4 w-4" />
-                        </button> */}
                         <button
                           onClick={() => handleRestoreClick(patient)}
                           className="p-2 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-all"

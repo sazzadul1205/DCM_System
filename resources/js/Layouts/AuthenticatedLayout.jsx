@@ -19,7 +19,9 @@ import {
   FaAllergies,
   FaNotesMedical,
   FaUserInjured,
-  FaUserPlus
+  FaUserPlus,
+  FaUserEdit,
+  FaArchive
 } from 'react-icons/fa';
 
 export default function AuthenticatedLayout({ children }) {
@@ -136,6 +138,13 @@ export default function AuthenticatedLayout({ children }) {
         permission_key: "patients.create",
         current: currentRoute === 'patients.create',
       },
+      {
+        name: 'Archived Patients', 
+        icon: FaArchive,
+        href: route('patients.archived'),
+        permission_key: "patients.archived",
+        current: currentRoute === 'patients.archived',
+      },
     );
 
     // Edit Profile - Only show when on the Edit Profile page, and it won't be clickable
@@ -143,9 +152,20 @@ export default function AuthenticatedLayout({ children }) {
       allNavigationItems.push({
         name: 'Edit Profile',
         icon: FaUserCheck,
-        href: '#', // No destination - just a visual indicator
+        href: '#',
         permission_key: "profile.edit",
-        current: true, // Always active/highlighted when visible
+        current: true,
+      });
+    }
+
+    // Edit Patient - Only show when on the Edit Profile page, and it won't be clickable
+    if (currentRoute === 'patients.edit') {
+      allNavigationItems.push({
+        name: 'Edit Patient',
+        icon: FaUserEdit,
+        href: '#',
+        permission_key: "patients.edit",
+        current: true,
       });
     }
   }
