@@ -18,13 +18,15 @@ use Inertia\Inertia;
 class PatientController extends Controller
 {
     /**
-     * Display a listing of patients.
+     * Display a listing of patients with advanced filtering.
      */
     public function index(Request $request)
     {
         $query = Patient::query();
 
-        // Search functionality
+        // ============================================
+        // BASIC SEARCH
+        // ============================================
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -34,6 +36,66 @@ class PatientController extends Controller
                     ->orWhere('email', 'like', "%{$search}%");
             });
         }
+
+        // ============================================
+        // ADVANCED FILTERS
+        // ============================================
+
+        // Patient UID
+        if ($request->filled('patient_uid')) {
+            $query->where('patient_uid', 'like', "%{$request->patient_uid}%");
+        }
+
+        // Patient Name
+        if ($request->filled('name')) {
+            $query->where('name', 'like', "%{$request->name}%");
+        }
+
+        // Phone Number
+        if ($request->filled('phone')) {
+            $query->where('phone_primary', 'like', "%{$request->phone}%");
+        }
+
+        // Email
+        if ($request->filled('email')) {
+            $query->where('email', 'like', "%{$request->email}%");
+        }
+
+        // Age Range (calculate from date_of_birth)
+        if ($request->filled('age_from')) {
+            $minDate = now()->subYears($request->age_from)->format('Y-m-d');
+            $query->whereDate('date_of_birth', '<=', $minDate);
+        }
+        if ($request->filled('age_to')) {
+            $maxDate = now()->subYears($request->age_to)->format('Y-m-d');
+            $query->whereDate('date_of_birth', '>=', $maxDate);
+        }
+
+        // Address - Division
+        if ($request->filled('division')) {
+            $query->where('address_division', 'like', "%{$request->division}%");
+        }
+
+        // Address - District
+        if ($request->filled('district')) {
+            $query->where('address_district', 'like', "%{$request->district}%");
+        }
+
+        // Referred By (Doctor Name)
+        if ($request->filled('referred_by')) {
+            $query->whereHas('referredBy', function ($q) use ($request) {
+                $q->where('name', 'like', "%{$request->referred_by}%");
+            });
+        }
+
+        // Referral Source
+        if ($request->filled('referral_source')) {
+            $query->where('referral_source', $request->referral_source);
+        }
+
+        // ============================================
+        // QUICK FILTERS (Basic)
+        // ============================================
 
         // Status filter
         if ($request->filled('status')) {
@@ -50,7 +112,7 @@ class PatientController extends Controller
             $query->where('blood_group', $request->blood_group);
         }
 
-        // Date range filter
+        // Date range filter (from_date and to_date)
         if ($request->filled('from_date')) {
             $query->whereDate('registration_date', '>=', $request->from_date);
         }
@@ -58,12 +120,22 @@ class PatientController extends Controller
             $query->whereDate('registration_date', '<=', $request->to_date);
         }
 
-        // Sorting
+        // ============================================
+        // SORTING
+        // ============================================
         $sortField = $request->input('sort_field', 'created_at');
         $sortDirection = $request->input('sort_direction', 'desc');
+
+        // Validate sort field to prevent SQL injection
+        $allowedSortFields = ['patient_uid', 'name', 'registration_date', 'status', 'created_at', 'updated_at'];
+        $sortField = in_array($sortField, $allowedSortFields) ? $sortField : 'created_at';
+        $sortDirection = $sortDirection === 'asc' ? 'asc' : 'desc';
+
         $query->orderBy($sortField, $sortDirection);
 
-        // Pagination
+        // ============================================
+        // PAGINATION
+        // ============================================
         $perPage = $request->input('per_page', 10);
         $patients = $query->paginate($perPage)->withQueryString();
 
@@ -105,15 +177,31 @@ class PatientController extends Controller
             ];
         });
 
+        // Return all filter values to the frontend for persistence
         return Inertia::render('Backend/Patients/Index', [
             'patients' => $patients,
             'filters' => [
+                // Basic filters
                 'search' => $request->input('search', ''),
                 'status' => $request->input('status', ''),
                 'gender' => $request->input('gender', ''),
                 'blood_group' => $request->input('blood_group', ''),
                 'from_date' => $request->input('from_date', ''),
                 'to_date' => $request->input('to_date', ''),
+
+                // Advanced filters
+                'patient_uid' => $request->input('patient_uid', ''),
+                'name' => $request->input('name', ''),
+                'phone' => $request->input('phone', ''),
+                'email' => $request->input('email', ''),
+                'age_from' => $request->input('age_from', ''),
+                'age_to' => $request->input('age_to', ''),
+                'division' => $request->input('division', ''),
+                'district' => $request->input('district', ''),
+                'referred_by' => $request->input('referred_by', ''),
+                'referral_source' => $request->input('referral_source', ''),
+
+                // Sorting
                 'sort_field' => $sortField,
                 'sort_direction' => $sortDirection,
                 'per_page' => (int) $perPage,
@@ -964,47 +1052,5 @@ class PatientController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
-    }
-
-    /**
-     * Get patient statistics for dashboard.
-     */
-    public function statistics()
-    {
-        $totalPatients = Patient::count();
-        $activePatients = Patient::where('status', 'active')->count();
-        $inactivePatients = Patient::where('status', 'inactive')->count();
-        $archivedPatients = Patient::onlyTrashed()->count();
-
-        $genderStats = [
-            'male' => Patient::where('gender', 'male')->count(),
-            'female' => Patient::where('gender', 'female')->count(),
-            'other' => Patient::where('gender', 'other')->count(),
-        ];
-
-        $bloodGroupStats = Patient::select('blood_group', DB::raw('count(*) as total'))
-            ->whereNotNull('blood_group')
-            ->groupBy('blood_group')
-            ->pluck('total', 'blood_group')
-            ->toArray();
-
-        $monthlyRegistrations = Patient::select(
-            DB::raw('DATE_FORMAT(registration_date, "%Y-%m") as month'),
-            DB::raw('count(*) as total')
-        )
-            ->groupBy('month')
-            ->orderBy('month', 'desc')
-            ->limit(12)
-            ->get();
-
-        return response()->json([
-            'total' => $totalPatients,
-            'active' => $activePatients,
-            'inactive' => $inactivePatients,
-            'archived' => $archivedPatients,
-            'by_gender' => $genderStats,
-            'by_blood_group' => $bloodGroupStats,
-            'monthly_registrations' => $monthlyRegistrations,
-        ]);
     }
 }

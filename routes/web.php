@@ -95,9 +95,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/print/list', [PatientController::class, 'print'])->name('print');
         Route::get('/export/csv', [PatientController::class, 'export'])->name('export');
 
-        // STATISTICS
-        Route::get('/statistics/data', [PatientController::class, 'statistics'])->name('statistics');
-
         // RESTORE AND FORCE DELETE FOR SINGLE PATIENTS (specific pattern)
         Route::patch('/{id}/restore', [PatientController::class, 'restore'])->name('restore');
         Route::delete('/{id}/force-delete', [PatientController::class, 'forceDelete'])->name('force-delete');

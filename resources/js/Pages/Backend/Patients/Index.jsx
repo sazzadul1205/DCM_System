@@ -12,6 +12,9 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 // SweetAlert
 import Swal from 'sweetalert2';
 
+// Components
+import QuickCreatePatientModal from './QuickCreatePatientModal';
+
 // Icons
 import {
   FaPlus,
@@ -36,6 +39,13 @@ import {
   FaDownload,
   FaEye,
   FaArchive,
+  FaFilter,
+  FaCalendarWeek,
+  FaMapMarkerAlt,
+  FaUndo,
+  FaUserFriends,
+  FaHospitalUser,
+  FaIdCard
 } from 'react-icons/fa';
 
 export default function PatientsIndex({ patients, filters }) {
@@ -45,6 +55,24 @@ export default function PatientsIndex({ patients, filters }) {
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [showBulkStatusModal, setShowBulkStatusModal] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [showQuickCreateModal, setShowQuickCreateModal] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Advanced filter state
+  const [advancedFilters, setAdvancedFilters] = useState({
+    patient_uid: '',
+    name: '',
+    phone: '',
+    email: '',
+    age_from: '',
+    age_to: '',
+    division: '',
+    district: '',
+    registration_from: filters.from_date || '',
+    registration_to: filters.to_date || '',
+    referred_by: '',
+    referral_source: ''
+  });
 
   // Success Toast Notification
   const showSuccessToast = (message) => {
@@ -73,6 +101,97 @@ export default function PatientsIndex({ patients, filters }) {
       timerProgressBar: true,
       background: '#ef4444',
       color: '#fff',
+    });
+  };
+
+  // Handle Advanced Filter Change
+  const handleAdvancedFilterChange = (e) => {
+    const { name, value } = e.target;
+    setAdvancedFilters(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Apply Advanced Filters
+  const applyAdvancedFilters = () => {
+    router.get(route('patients.index'), {
+      ...filters,
+      ...advancedFilters,
+      page: 1,
+    }, {
+      preserveState: true,
+      replace: true,
+    });
+  };
+
+  // Clear Advanced Filters
+  const clearAdvancedFilters = () => {
+    const clearedFilters = {
+      patient_uid: '',
+      name: '',
+      phone: '',
+      email: '',
+      age_from: '',
+      age_to: '',
+      division: '',
+      district: '',
+      registration_from: '',
+      registration_to: '',
+      referred_by: '',
+      referral_source: ''
+    };
+    setAdvancedFilters(clearedFilters);
+
+    router.get(route('patients.index'), {
+      search: filters.search || '',
+      status: '',
+      gender: '',
+      blood_group: '',
+      per_page: filters.per_page || 10,
+      page: 1,
+    }, {
+      preserveState: true,
+      replace: true,
+    });
+  };
+
+  // Quick Date Filters
+  const applyQuickDateFilter = (type) => {
+    const today = new Date();
+    let from = '';
+    let to = today.toISOString().split('T')[0];
+
+    switch (type) {
+      case 'today':
+        from = to;
+        break;
+      case 'week':
+        { const weekAgo = new Date(today);
+        weekAgo.setDate(today.getDate() - 7);
+        from = weekAgo.toISOString().split('T')[0];
+        break; }
+      case 'month':
+        { const monthAgo = new Date(today);
+        monthAgo.setMonth(today.getMonth() - 1);
+        from = monthAgo.toISOString().split('T')[0];
+        break; }
+      case 'year':
+        { const yearAgo = new Date(today);
+        yearAgo.setFullYear(today.getFullYear() - 1);
+        from = yearAgo.toISOString().split('T')[0];
+        break; }
+      default:
+        return;
+    }
+
+    setAdvancedFilters(prev => ({ ...prev, registration_from: from, registration_to: to }));
+
+    router.get(route('patients.index'), {
+      ...filters,
+      from_date: from,
+      to_date: to,
+      page: 1,
+    }, {
+      preserveState: true,
+      replace: true,
     });
   };
 
@@ -295,6 +414,11 @@ export default function PatientsIndex({ patients, filters }) {
       : <FaSortDown className="ml-1 h-4 w-4" />;
   };
 
+  // Check if any advanced filters are active
+  const hasActiveAdvancedFilters = () => {
+    return Object.values(advancedFilters).some(value => value !== '');
+  };
+
   return (
     <AuthenticatedLayout>
       <Head title="Patient Management" />
@@ -332,11 +456,19 @@ export default function PatientsIndex({ patients, filters }) {
             </button>
 
             <button
+              onClick={() => setShowQuickCreateModal(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-teal-500 to-teal-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105"
+            >
+              <FaPlus className="h-4 w-4" />
+              Quick Register
+            </button>
+
+            <button
               onClick={() => router.get(route('patients.create'))}
               className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-2.5 text-sm font-medium text-white shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105"
             >
               <FaPlus className="h-4 w-4" />
-              Register New Patient
+              Full Registration
             </button>
 
             <button
@@ -387,8 +519,8 @@ export default function PatientsIndex({ patients, filters }) {
           </div>
         )}
 
-        {/* Filters Bar */}
-        <div className="mb-6 flex flex-wrap gap-4">
+        {/* Basic Filters Bar */}
+        <div className="mb-4 flex flex-wrap gap-4">
           <div className="flex-1 min-w-[200px]">
             <div className="relative group">
               <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
@@ -449,7 +581,265 @@ export default function PatientsIndex({ patients, filters }) {
             <option value={50}>50 per page</option>
             <option value={100}>100 per page</option>
           </select>
+
+          <button
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${showAdvancedFilters || hasActiveAdvancedFilters()
+              ? 'bg-purple-600 text-white shadow-md'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+              }`}
+          >
+            <FaFilter className="h-4 w-4" />
+            Advanced Filters
+            {hasActiveAdvancedFilters() && (
+              <span className="ml-1 rounded-full bg-red-500 px-1.5 py-0.5 text-xs text-white">!</span>
+            )}
+          </button>
         </div>
+
+        {/* Advanced Filters Panel */}
+        {showAdvancedFilters && (
+          <div className="mb-6 rounded-xl border border-purple-200 bg-purple-50 p-5 dark:border-purple-800 dark:bg-purple-900/20 shadow-lg animate-slideDown">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-300 flex items-center gap-2">
+                <FaFilter className="h-5 w-5" />
+                Advanced Search Filters
+              </h3>
+              <button
+                onClick={clearAdvancedFilters}
+                className="text-sm text-purple-600 hover:text-purple-800 dark:text-purple-400 flex items-center gap-1"
+              >
+                <FaUndo className="h-3 w-3" />
+                Clear All
+              </button>
+            </div>
+
+            {/* Quick Date Filters */}
+            <div className="mb-4 flex flex-wrap gap-2">
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-400 mr-2">Quick Date:</span>
+              <button
+                type="button"
+                onClick={() => applyQuickDateFilter('today')}
+                className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300"
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => applyQuickDateFilter('week')}
+                className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-lg hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300"
+              >
+                Last 7 Days
+              </button>
+              <button
+                type="button"
+                onClick={() => applyQuickDateFilter('month')}
+                className="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300"
+              >
+                Last 30 Days
+              </button>
+              <button
+                type="button"
+                onClick={() => applyQuickDateFilter('year')}
+                className="px-3 py-1 text-xs bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-300"
+              >
+                Last Year
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Patient UID */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <FaIdCard className="inline mr-1 h-3 w-3" /> Patient UID
+                </label>
+                <input
+                  type="text"
+                  name="patient_uid"
+                  value={advancedFilters.patient_uid}
+                  onChange={handleAdvancedFilterChange}
+                  placeholder="Enter patient UID"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              {/* Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <FaUserMd className="inline mr-1 h-3 w-3" /> Full Name
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={advancedFilters.name}
+                  onChange={handleAdvancedFilterChange}
+                  placeholder="Enter patient name"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              {/* Phone */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <FaPhone className="inline mr-1 h-3 w-3" /> Phone Number
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={advancedFilters.phone}
+                  onChange={handleAdvancedFilterChange}
+                  placeholder="Enter phone number"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <FaEnvelope className="inline mr-1 h-3 w-3" /> Email Address
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={advancedFilters.email}
+                  onChange={handleAdvancedFilterChange}
+                  placeholder="Enter email address"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              {/* Age Range */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Age From</label>
+                  <input
+                    type="number"
+                    name="age_from"
+                    value={advancedFilters.age_from}
+                    onChange={handleAdvancedFilterChange}
+                    placeholder="Min age"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Age To</label>
+                  <input
+                    type="number"
+                    name="age_to"
+                    value={advancedFilters.age_to}
+                    onChange={handleAdvancedFilterChange}
+                    placeholder="Max age"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Division */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <FaMapMarkerAlt className="inline mr-1 h-3 w-3" /> Division
+                </label>
+                <input
+                  type="text"
+                  name="division"
+                  value={advancedFilters.division}
+                  onChange={handleAdvancedFilterChange}
+                  placeholder="Enter division"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              {/* District */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <FaMapMarkerAlt className="inline mr-1 h-3 w-3" /> District
+                </label>
+                <input
+                  type="text"
+                  name="district"
+                  value={advancedFilters.district}
+                  onChange={handleAdvancedFilterChange}
+                  placeholder="Enter district"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              {/* Registration Date Range */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <FaCalendarWeek className="inline mr-1 h-3 w-3" /> From Date
+                </label>
+                <input
+                  type="date"
+                  name="registration_from"
+                  value={advancedFilters.registration_from}
+                  onChange={handleAdvancedFilterChange}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <FaCalendarWeek className="inline mr-1 h-3 w-3" /> To Date
+                </label>
+                <input
+                  type="date"
+                  name="registration_to"
+                  value={advancedFilters.registration_to}
+                  onChange={handleAdvancedFilterChange}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              {/* Referred By */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <FaUserFriends className="inline mr-1 h-3 w-3" /> Referred By
+                </label>
+                <input
+                  type="text"
+                  name="referred_by"
+                  value={advancedFilters.referred_by}
+                  onChange={handleAdvancedFilterChange}
+                  placeholder="Doctor name"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              {/* Referral Source */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <FaHospitalUser className="inline mr-1 h-3 w-3" /> Referral Source
+                </label>
+                <select
+                  name="referral_source"
+                  value={advancedFilters.referral_source}
+                  onChange={handleAdvancedFilterChange}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                >
+                  <option value="">All Sources</option>
+                  <option value="doctor">Doctor</option>
+                  <option value="patient">Patient</option>
+                  <option value="walk_in">Walk In</option>
+                  <option value="social_media">Social Media</option>
+                  <option value="news">News</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Apply Button */}
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={applyAdvancedFilters}
+                className="rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-2 text-white hover:shadow-lg transition-all flex items-center gap-2"
+              >
+                <FaSearch className="h-4 w-4" />
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Patients Table */}
         <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -651,6 +1041,15 @@ export default function PatientsIndex({ patients, filters }) {
             </div>
           </div>
         )}
+
+        {/* Quick Create Modal */}
+        <QuickCreatePatientModal
+          isOpen={showQuickCreateModal}
+          onClose={() => setShowQuickCreateModal(false)}
+          onSuccess={() => {
+            router.reload({ preserveScroll: true });
+          }}
+        />
 
         {/* Single Delete Modal */}
         {showDeleteModal && (
