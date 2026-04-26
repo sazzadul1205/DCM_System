@@ -15,6 +15,7 @@ use App\Http\Controllers\AllergyController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MedicalConditionController;
 use App\Http\Controllers\PatientController;
+use Illuminate\Support\Facades\Mail;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -106,6 +107,18 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/{patient}/status', [PatientController::class, 'updateStatus'])->name('update-status');
         Route::delete('/{patient}', [PatientController::class, 'destroy'])->name('destroy');
     });
+
+    Route::get('/test-mail', function () {
+        try {
+            Mail::raw('Test email from DCM System', function ($message) {
+                $message->to('www.sazzadul14@gmail.com')
+                    ->subject('Test Email');
+            });
+            return 'Email sent successfully!';
+        } catch (\Exception $e) {
+            return 'Error: ' . $e->getMessage();
+        }
+    })->middleware(['auth']);
 });
 
 require __DIR__ . '/auth.php';

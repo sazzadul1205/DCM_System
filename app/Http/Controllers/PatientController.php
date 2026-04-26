@@ -9,14 +9,35 @@ use App\Models\MedicalCondition;
 use App\Models\PatientAllergy;
 use App\Models\PatientMedicalCondition;
 use App\Models\PatientMedication;
+use App\Mail\PatientWelcomeMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 
 class PatientController extends Controller
 {
+    /**
+     * Send welcome/notification email to patient
+     */
+    private function sendPatientEmail($patient, $action = 'created')
+    {
+        if (!$patient->email) {
+            return false;
+        }
+
+        try {
+            Mail::to($patient->email)->send(new PatientWelcomeMail($patient, $action));
+            Log::info("Email sent to patient: {$patient->email} for action: {$action}");
+            return true;
+        } catch (\Exception $e) {
+            Log::error("Failed to send email to patient {$patient->email}: " . $e->getMessage());
+            return false;
+        }
+    }
+
     /**
      * Display a listing of patients with advanced filtering.
      */
@@ -230,7 +251,6 @@ class PatientController extends Controller
      */
     public function store(Request $request)
     {
-        // Change validation to accept arrays OR strings
         $validated = $request->validate([
             // Basic Info
             'name' => 'required|string|max:255',
@@ -260,13 +280,12 @@ class PatientController extends Controller
             'referral_source' => 'nullable|string|max:255',
             'referral_notes' => 'nullable|string',
 
-            // Change these to accept arrays OR remove validation rules entirely
+            // Medical
             'allergies' => 'nullable',
             'conditions' => 'nullable',
             'medications' => 'nullable',
         ]);
 
-        // Start database transaction
         DB::beginTransaction();
 
         try {
@@ -280,10 +299,9 @@ class PatientController extends Controller
             // Create patient
             $patient = Patient::create($validated);
 
-            // Process Allergies - handle both string JSON and array formats
+            // Process Allergies
             $allergies = $request->input('allergies');
             if ($allergies) {
-                // If it's a JSON string, decode it
                 if (is_string($allergies)) {
                     $allergies = json_decode($allergies, true);
                 }
@@ -304,10 +322,9 @@ class PatientController extends Controller
                 }
             }
 
-            // Process Medical Conditions - handle both string JSON and array formats
+            // Process Medical Conditions
             $conditions = $request->input('conditions');
             if ($conditions) {
-                // If it's a JSON string, decode it
                 if (is_string($conditions)) {
                     $conditions = json_decode($conditions, true);
                 }
@@ -328,10 +345,9 @@ class PatientController extends Controller
                 }
             }
 
-            // Process Medications - handle both string JSON and array formats
+            // Process Medications
             $medications = $request->input('medications');
             if ($medications) {
-                // If it's a JSON string, decode it
                 if (is_string($medications)) {
                     $medications = json_decode($medications, true);
                 }
@@ -355,13 +371,16 @@ class PatientController extends Controller
                 }
             }
 
-            // Commit transaction
             DB::commit();
 
+            // Send welcome email if patient has email
+            if ($patient->email) {
+                $this->sendPatientEmail($patient, 'created');
+            }
+
             return redirect()->route('patients.show', $patient->id)
-                ->with('success', 'Patient created successfully.');
+                ->with('success', 'Patient created successfully.' . ($patient->email ? ' Welcome email sent!' : ''));
         } catch (\Exception $e) {
-            // Rollback transaction on error
             DB::rollBack();
 
             Log::error('Patient creation failed: ' . $e->getMessage());
@@ -384,6 +403,7 @@ class PatientController extends Controller
             'gender' => 'required|in:male,female,other',
             'date_of_birth' => 'required|date|before:today',
             'status' => 'required|in:active,inactive',
+            'email' => 'nullable|email|max:255',
         ]);
 
         $validated['registration_date'] = now()->toDateString();
@@ -392,8 +412,13 @@ class PatientController extends Controller
 
         $patient = Patient::create($validated);
 
+        // Send welcome email if patient has email
+        if ($patient->email) {
+            $this->sendPatientEmail($patient, 'created');
+        }
+
         return redirect()->route('patients.show', $patient->id)
-            ->with('success', 'Patient created successfully. You can add more details later.');
+            ->with('success', 'Patient created successfully.' . ($patient->email ? ' Welcome email sent!' : ' You can add more details later.'));
     }
 
     /**
@@ -628,6 +653,9 @@ class PatientController extends Controller
 
         $validated['updated_by'] = Auth::id();
 
+        $oldEmail = $patient->email;
+        $emailChanged = ($oldEmail !== $request->email);
+
         DB::beginTransaction();
 
         try {
@@ -714,8 +742,19 @@ class PatientController extends Controller
 
             DB::commit();
 
+            // Send email notification if patient has email
+            if ($patient->email) {
+                if ($emailChanged) {
+                    // Email was newly added or changed - send welcome
+                    $this->sendPatientEmail($patient, 'created');
+                } else {
+                    // Email exists - send update notification
+                    $this->sendPatientEmail($patient, 'updated');
+                }
+            }
+
             return redirect()->route('patients.show', $patient->id)
-                ->with('success', 'Patient updated successfully.');
+                ->with('success', 'Patient updated successfully.' . ($patient->email ? ' Notification email sent.' : ''));
         } catch (\Exception $e) {
             DB::rollBack();
 
