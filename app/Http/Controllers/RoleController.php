@@ -16,22 +16,42 @@ class RoleController extends Controller
     {
         return [
             'dashboard.view',
+
+            // Profile
             'profile.view',
             'profile.edit',
             'profile.complete',
+
+            // Users
+            'users.index',
+            'users.view',
+            'users.create',
+            'users.edit',
+            'users.delete',
+            'users.archived',
+            'users.restore',
+            'users.force-delete',
+
+            // Roles
             'roles.index',
             'roles.view',
             'roles.create',
             'roles.edit',
             'roles.delete',
+
+            // Allergies
             'allergies.index',
             'allergies.create',
             'allergies.edit',
             'allergies.delete',
+
+            // Medical conditions
             'medical-conditions.index',
             'medical-conditions.create',
             'medical-conditions.edit',
             'medical-conditions.delete',
+
+            // Patients
             'patients.index',
             'patients.view',
             'patients.create',
@@ -44,6 +64,7 @@ class RoleController extends Controller
             'patients.print',
             'patients.export',
             'patients.statistics',
+
         ];
     }
 

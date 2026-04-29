@@ -15,6 +15,7 @@ use App\Http\Controllers\AllergyController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MedicalConditionController;
 use App\Http\Controllers\PatientController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Mail;
 
 Route::get('/', function () {
@@ -39,6 +40,37 @@ Route::middleware(['auth'])->group(function () {
         Route::get('edit', [ProfileController::class, 'edit'])->name('edit');
         Route::put('update', [ProfileController::class, 'update'])->name('update');
         Route::delete('destroy', [ProfileController::class, 'destroy'])->name('destroy');
+    });
+
+    // User Management Routes
+    Route::prefix('users')->name('users.')->group(function () {
+        // Main routes
+        Route::get('/', [UserController::class, 'index'])->name('index');
+        Route::get('/archived', [UserController::class, 'archived'])->name('archived');
+        Route::get('/form-data', [UserController::class, 'getFormData'])->name('form-data');
+
+        // Export route (add this before bulk operations or parameter routes)
+        Route::get('/export', [UserController::class, 'export'])->name('export');
+
+        // Bulk operations (need to be before the {user} parameter route)
+        Route::post('/bulk/delete', [UserController::class, 'bulkDelete'])->name('bulk.delete');
+        Route::put('/bulk/status', [UserController::class, 'bulkStatus'])->name('bulk.status');
+
+        // Create user
+        Route::post('/', [UserController::class, 'store'])->name('store');
+
+        // User specific routes (with {user} parameter) - MUST be after bulk operations
+        Route::get('/{user}', [UserController::class, 'show'])->name('show');
+        Route::get('/{user}/edit', [UserController::class, 'edit'])->name('edit');
+        Route::put('/{user}', [UserController::class, 'update'])->name('update');
+        Route::patch('/{user}/status', [UserController::class, 'updateStatus'])->name('update-status');
+        Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy');
+        Route::post('/{user}/reset-password', [UserController::class, 'resetPassword'])->name('reset-password');
+
+        // Archived user specific routes (using ID instead of User model binding)
+        // These need to be after the main routes to avoid conflicts
+        Route::post('/archived/{id}/restore', [UserController::class, 'restore'])->name('restore');
+        Route::delete('/archived/{id}/force', [UserController::class, 'forceDelete'])->name('force-delete');
     });
 
     // Role management routes

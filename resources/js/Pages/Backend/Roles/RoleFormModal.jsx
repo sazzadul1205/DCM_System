@@ -44,6 +44,10 @@ export default function RoleFormModal({
       icon: FaIdCard,
       permissions: availablePermissions.filter(p => p.startsWith('profile.'))
     },
+    'Users': {
+      icon: FaUser,
+      permissions: availablePermissions.filter(p => p.startsWith('users.'))
+    },
     'Roles': {
       icon: FaUserShield,
       permissions: availablePermissions.filter(p => p.startsWith('roles.'))

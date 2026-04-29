@@ -140,7 +140,9 @@ class ProfileController extends Controller
     $user = User::query()->with('role')->findOrFail(Auth::id());
 
     return Inertia::render('Backend/Users/Show', [
-      'user' => $user
+      'user' => $user,
+      'isOwnProfile' => true,
+      'canEdit' => true,
     ]);
   }
 

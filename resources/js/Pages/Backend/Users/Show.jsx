@@ -4,7 +4,7 @@
 import { useState } from 'react';
 
 // Inertia
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, usePage, router } from '@inertiajs/react';
 
 // Icons
 import {
@@ -18,6 +18,7 @@ import {
   FaMapMarkerAlt,
   FaHeartbeat,
   FaCheckCircle,
+  FaArrowLeft,
 } from 'react-icons/fa';
 
 // Layout
@@ -27,17 +28,38 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import ChangePasswordModal from './ChangePasswordModal';
 import DeleteProfileModal from './DeleteProfileModal';
 
-export default function Show({ user }) {
+export default function Show({ user, isOwnProfile = false, canEdit = false, backUrl = null }) {
   // Page Props
   const { flash = {} } = usePage().props;
+  const authUser = usePage().props.auth.user;
 
   // Modals
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
+  // Determine if we're viewing own profile (either explicit or by comparing IDs)
+  const isOwn = isOwnProfile || (authUser && user.id === authUser.id);
+
+  // Determine if action buttons should be shown
+  const showActionButtons = isOwn || canEdit;
+
+  // Determine back button URL
+  const backButtonUrl = backUrl || (isOwn ? null : route('users.index'));
+
+  // Handle back navigation
+  const handleBack = () => {
+    if (backUrl) {
+      router.get(backUrl);
+    } else if (!isOwn) {
+      router.get(route('users.index'));
+    } else {
+      window.history.back();
+    }
+  };
+
   return (
     <AuthenticatedLayout>
-      <Head title='My Profile' />
+      <Head title={isOwn ? 'My Profile' : `Profile: ${user.name}`} />
 
       {/* Body */}
       <div className="mx-auto py-6">
@@ -49,40 +71,74 @@ export default function Show({ user }) {
           </div>
         )}
 
-        {/* Header with Title */}
-        <div className='flex justify-between'>
+        {/* Header with Title & Back Button */}
+        <div className='flex justify-between items-start flex-wrap gap-4'>
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Profile</h1>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">View and manage your profile information</p>
+            {/* Back Button */}
+            {backButtonUrl && (
+              <button
+                onClick={handleBack}
+                className="mb-3 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+              >
+                <FaArrowLeft className="h-4 w-4" />
+                Back to {isOwn ? 'Dashboard' : 'Users List'}
+              </button>
+            )}
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {isOwn ? 'My Profile' : `Profile: ${user.name}`}
+            </h1>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              {isOwn
+                ? 'View and manage your profile information'
+                : `Viewing profile information for ${user.name}`
+              }
+            </p>
           </div>
 
-          {/* Action Buttons */}
-          <div className="mb-6 flex flex-wrap items-center gap-3">
-            <Link
-              href={route('profile.edit')}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-700 hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-            >
-              <FaEdit className="h-4 w-4" />
-              Edit Profile
-            </Link>
+          {/* Action Buttons - Only for own profile or users with edit permission */}
+          {showActionButtons && (
+            <div className="mb-6 flex flex-wrap items-center gap-3">
+              {isOwn && (
+                <>
+                  <Link
+                    href={route('profile.edit')}
+                    className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-700 hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                  >
+                    <FaEdit className="h-4 w-4" />
+                    Edit Profile
+                  </Link>
 
-            <button
-              onClick={() => setIsPasswordModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-yellow-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-yellow-600 hover:shadow focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1"
-            >
-              <FaKey className="h-4 w-4" />
-              Change Password
-            </button>
+                  <button
+                    onClick={() => setIsPasswordModalOpen(true)}
+                    className="inline-flex items-center gap-2 rounded-lg bg-yellow-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-yellow-600 hover:shadow focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1"
+                  >
+                    <FaKey className="h-4 w-4" />
+                    Change Password
+                  </button>
 
-            <button
-              onClick={() => setIsDeleteModalOpen(true)}
-              type="button"
-              className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-red-700 hover:shadow focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
-            >
-              <FaTrashAlt className="h-4 w-4" />
-              Delete Profile
-            </button>
-          </div>
+                  <button
+                    onClick={() => setIsDeleteModalOpen(true)}
+                    type="button"
+                    className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-red-700 hover:shadow focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
+                  >
+                    <FaTrashAlt className="h-4 w-4" />
+                    Delete Profile
+                  </button>
+                </>
+              )}
+
+              {/* Admin can edit other users */}
+              {!isOwn && canEdit && (
+                <Link
+                  href={route('users.edit', user.id)}
+                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-700 hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                >
+                  <FaEdit className="h-4 w-4" />
+                  Edit User
+                </Link>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Profile Card */}
@@ -126,9 +182,12 @@ export default function Show({ user }) {
 
               {/* Right: Status */}
               <div className="self-start sm:self-auto">
-                <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${user.status === 1 || user.status === true
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                    : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                  }`}>
                   <FaCheckCircle className="h-3 w-3" />
-                  Verified Account
+                  {user.status === 1 || user.status === true ? 'Active Account' : 'Inactive Account'}
                 </span>
               </div>
 
@@ -270,16 +329,20 @@ export default function Show({ user }) {
         </div>
       </div>
 
-      {/* Change Password Modal */}
-      <ChangePasswordModal
-        isOpen={isPasswordModalOpen}
-        onClose={() => setIsPasswordModalOpen(false)}
-      />
+      {/* Modals - Only shown for own profile */}
+      {isOwn && (
+        <>
+          <ChangePasswordModal
+            isOpen={isPasswordModalOpen}
+            onClose={() => setIsPasswordModalOpen(false)}
+          />
 
-      <DeleteProfileModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-      />
+          <DeleteProfileModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+          />
+        </>
+      )}
 
     </AuthenticatedLayout>
   );

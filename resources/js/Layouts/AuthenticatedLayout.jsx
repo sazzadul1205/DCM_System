@@ -25,7 +25,15 @@ import {
 } from 'react-icons/fa';
 
 export default function AuthenticatedLayout({ children }) {
-  const user = usePage().props.auth.user;
+  // CORRECT WAY to use usePage() in Inertia
+  const { props } = usePage();
+  const { auth } = props;
+  const user = auth?.user;
+
+  // Get additional props passed from controller
+  const isOwnProfile = props.isOwnProfile ?? true;
+  const viewingUser = props.user;
+
   const isProfileCompleted = user?.profile_completed || false;
   const userPermissions = user?.role?.permissions || [];
   const currentRoute = route().current();
@@ -68,8 +76,23 @@ export default function AuthenticatedLayout({ children }) {
   // Check if user has permission for a menu item
   const hasPermission = (permissionKey) => {
     if (!permissionKey) return true;
-    if (!userPermissions.length) return false;
+    if (!userPermissions || !userPermissions.length) return false;
     return userPermissions.includes(permissionKey);
+  };
+
+  // Check if we're currently viewing a user profile (not own)
+  const isViewingOtherUserProfile = () => {
+    // If we're on users.show route AND it's not own profile
+    const isOnUserShowRoute = currentRoute === 'users.show';
+    // Only highlight "User List" when viewing another user's profile
+    return isOnUserShowRoute && !isOwnProfile;
+  };
+
+  // Check if we should highlight "My Profile"
+  const shouldHighlightMyProfile = () => {
+    // Highlight on profile.show OR when on users.show but it's own profile
+    return currentRoute === 'profile.show' ||
+      (currentRoute === 'users.show' && isOwnProfile);
   };
 
   // ============================================
@@ -79,77 +102,77 @@ export default function AuthenticatedLayout({ children }) {
   // ============================================
 
   const allNavigationItems = [
-    // Dashboard - Order 1 (will appear first)
     {
       name: 'Dashboard',
       icon: FaTachometerAlt,
       href: route('dashboard'),
       permission_key: "dashboard.view",
       current: currentRoute === 'dashboard',
-      order: 1  // ← Change this number to control position
+      order: 1
     },
-    // Patient Management - Order 2
+    {
+      name: 'User List',
+      icon: FaUser,
+      href: route('users.index'),
+      permission_key: "users.index",
+      current: currentRoute === 'users.index' || isViewingOtherUserProfile(),
+      order: 2
+    },
     {
       name: 'Patient List',
       icon: FaUserInjured,
       href: route('patients.index'),
       permission_key: "patients.index",
       current: currentRoute === 'patients.index',
-      order: 2
+      order: 3
     },
-    // Register New Patient - Order 3
     {
       name: 'Register New Patient',
       icon: FaUserPlus,
       href: route('patients.create'),
       permission_key: "patients.create",
       current: currentRoute === 'patients.create',
-      order: 3
+      order: 4
     },
-    // Archived Patients - Order 4
     {
       name: 'Archived Patients',
       icon: FaArchive,
       href: route('patients.archived'),
       permission_key: "patients.archived",
       current: currentRoute === 'patients.archived',
-      order: 4
+      order: 5
     },
-    // My Profile - Order 5
     {
       name: 'My Profile',
       icon: FaIdCard,
       href: route('profile.show'),
       permission_key: "profile.view",
-      current: currentRoute === 'profile.show',
-      order: 5
+      current: shouldHighlightMyProfile(),
+      order: 6
     },
-    // Manage Roles - Order 6
     {
       name: 'Manage Roles',
       icon: FaUserShield,
       href: route('roles.index'),
       permission_key: "roles.index",
       current: currentRoute === 'roles.index',
-      order: 6
+      order: 7
     },
-    // Manage Allergies Options - Order 7
     {
       name: 'Manage Allergies Options',
       icon: FaAllergies,
       href: route('allergies.index'),
       permission_key: "allergies.index",
       current: currentRoute === 'allergies.index',
-      order: 7
+      order: 8
     },
-    // Manage Medical Conditions Options - Order 8
     {
       name: 'Manage Medical Conditions Options',
       icon: FaNotesMedical,
       href: route('medical-conditions.index'),
       permission_key: "medical-conditions.index",
       current: currentRoute === 'medical-conditions.index',
-      order: 8
+      order: 9
     }
   ];
 
@@ -158,6 +181,14 @@ export default function AuthenticatedLayout({ children }) {
 
   // Filter navigation items based on user permissions
   const navigation = sortedNavigation.filter(item => hasPermission(item.permission_key));
+
+  // Don't show "My Profile" in sidebar when viewing another user's profile
+  const filteredNavigation = navigation.filter(item => {
+    if (item.name === 'My Profile' && isViewingOtherUserProfile()) {
+      return false;
+    }
+    return true;
+  });
 
   // Conditionally add Complete Profile (only shown when profile not completed)
   // This appears at the top with order 0
@@ -172,7 +203,7 @@ export default function AuthenticatedLayout({ children }) {
         order: 0
       }
     ]
-    : navigation;
+    : filteredNavigation;
 
   // Add dynamic Edit Profile and Edit Patient (non-clickable items)
   const getDynamicItems = () => {
@@ -185,7 +216,18 @@ export default function AuthenticatedLayout({ children }) {
         href: '#',
         permission_key: "profile.edit",
         current: true,
-        order: 5.5 // Appears after My Profile
+        order: 6.5
+      });
+    }
+
+    if (currentRoute === 'users.edit') {
+      dynamicItems.push({
+        name: 'Edit User',
+        icon: FaUserEdit,
+        href: '#',
+        permission_key: "users.edit",
+        current: true,
+        order: 2.5
       });
     }
 
@@ -196,7 +238,7 @@ export default function AuthenticatedLayout({ children }) {
         href: '#',
         permission_key: "patients.edit",
         current: true,
-        order: 2.5 // Appears after Patient List
+        order: 3.5
       });
     }
 
@@ -208,7 +250,7 @@ export default function AuthenticatedLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
-      {/* Top Navigation Bar - Keep the same */}
+      {/* Top Navigation Bar */}
       <nav className="fixed top-0 right-0 left-0 z-30 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm transition-colors duration-200">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 justify-between">
@@ -251,8 +293,8 @@ export default function AuthenticatedLayout({ children }) {
                     <FaUser className="h-4 w-4 text-white" />
                   </div>
                   <div className="hidden md:block text-left">
-                    <p className="text-sm font-medium">{user.name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
+                    <p className="text-sm font-medium">{user?.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
                   </div>
                   <FaChevronDown className={`h-3 w-3 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -261,8 +303,8 @@ export default function AuthenticatedLayout({ children }) {
                   <div className="absolute right-0 mt-2 w-56 rounded-lg bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 z-50 transition-all duration-200">
                     <div className="py-1">
                       <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 md:hidden">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{user.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{user?.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
                       </div>
 
                       {!isProfileCompleted ? (
@@ -293,6 +335,16 @@ export default function AuthenticatedLayout({ children }) {
                             <span>Edit Profile</span>
                           </Link>
                         </>
+                      )}
+
+                      {/* Show "View User" option when viewing another user's profile */}
+                      {currentRoute === 'users.show' && !isOwnProfile && viewingUser && (
+                        <div className="px-4 py-2 text-sm text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20">
+                          <div className="flex items-center gap-2">
+                            <FaIdCard className="h-4 w-4" />
+                            <span>Viewing: {viewingUser.name}</span>
+                          </div>
+                        </div>
                       )}
 
                       <button
@@ -329,7 +381,12 @@ export default function AuthenticatedLayout({ children }) {
             {finalNavigationWithDynamic.map((item) => {
               const isActive = item.current;
 
-              if (item.name === 'Edit Profile' || item.name === 'Edit Patient') {
+              // Check if this is a non-clickable item (like Edit Profile, Edit User, Edit Patient)
+              const isNonClickable = item.name === 'Edit Profile' ||
+                item.name === 'Edit User' ||
+                item.name === 'Edit Patient';
+
+              if (isNonClickable) {
                 return (
                   <div
                     key={item.name}
